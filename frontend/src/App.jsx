@@ -30,7 +30,7 @@ function App() {
       })
 
       if (res.data.success) {
-        setResponse(res.data.response)
+        setResponse(JSON.stringify(res.data.data, null, 2))
       } else {
         setError(res.data.error || 'An error occurred')
       }

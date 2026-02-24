@@ -11,7 +11,7 @@ Type what you want — "move my 3pm meeting to tomorrow" or
 - Auth: Google OAuth 2.0 + JWTs
 
 ## Status
-Currently in **Phase 1**: Local Flask + React communication
+Currently in **Phase 2**: Natural language parsing with Groq API (Llama 3.1 8B Instant)
 
 ## Project Structure
 
@@ -65,10 +65,17 @@ just-schedule-it/
    pip install -r requirements.txt
    ```
 
-5. Create environment file:
+5. Create environment file and add your Groq API key:
    ```bash
    cp .env.example .env
    ```
+
+   Edit `.env` and add your Groq API key:
+   ```
+   GROQ_API_KEY=your_actual_groq_api_key_here
+   ```
+
+   Get your API key from: https://console.groq.com/
 
 6. Run the Flask server:
    ```bash
@@ -101,26 +108,35 @@ just-schedule-it/
 
    The frontend will run on `http://localhost:5173`
 
-### Testing Phase 1
+### Testing the Application
 
 1. Make sure both backend and frontend servers are running
 2. Open your browser to `http://localhost:5173`
-3. Type a message in the text box and click "Send"
-4. You should see the Flask backend echo your message back
+3. Type a natural language calendar command, for example:
+   - "schedule a meeting with John tomorrow at 3pm"
+   - "cancel my dentist appointment Friday"
+   - "move my 2pm meeting to Thursday at 4pm"
+   - "what do I have on Friday?"
+4. The Groq API will parse your command and return structured JSON with:
+   - Action type (create/delete/move/list)
+   - Event title
+   - Date and time information
+   - Confidence score
 
 ## Development Phases
 
-### Phase 1 (Current)
+### Phase 1 ✅ Complete
 - [x] Flask backend with simple echo endpoint
 - [x] React frontend with text input
 - [x] Backend ↔ Frontend communication working
 
-### Phase 2 
-- [ ] Integrate Groq API (Llama 3.1)
-- [ ] Parse natural language commands
-- [ ] Return AI-generated responses
+### Phase 2 ✅ Complete
+- [x] Integrate Groq API (Llama 3.1 8B Instant)
+- [x] Parse natural language commands into structured JSON
+- [x] Support 4 actions: create, delete, move, list
+- [x] Return consistent JSON with date/time parsing
 
-### Phase 3
+### Phase 3 (Current)
 - [ ] Set up Supabase database
 - [ ] Implement Google OAuth 2.0
 - [ ] Add JWT session management

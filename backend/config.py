@@ -16,8 +16,10 @@ class Config:
     # In production, this should be set to your Vercel frontend URL
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:5173').split(',')
 
-    # Future: Add secrets here (API keys, database URLs, etc.)
-    # GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+    # API Keys
+    GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+
+    # Future: Add additional secrets here
     # SUPABASE_URL = os.getenv('SUPABASE_URL')
     # SUPABASE_KEY = os.getenv('SUPABASE_KEY')
     # JWT_SECRET = os.getenv('JWT_SECRET')
