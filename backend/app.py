@@ -1,9 +1,24 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g, make_response, redirect
 from flask_cors import CORS
 from config import Config
 from groq import Groq
 import json
 from datetime import datetime
+
+# Import auth and database modules
+from auth import (
+    get_google_auth_url,
+    exchange_code_for_tokens,
+    get_google_user_info,
+    create_jwt,
+    require_auth
+)
+from database import (
+    get_user_by_google_id,
+    get_user_by_id,
+    create_user,
+    store_refresh_token
+)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -12,16 +27,161 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Enable CORS for cross-origin requests from frontend
-CORS(app, origins=Config.CORS_ORIGINS)
+# Important: supports_credentials=True is required for httpOnly cookies
+CORS(app, origins=Config.CORS_ORIGINS, supports_credentials=True)
 
 # Initialize Groq client
 groq_client = Groq(api_key=Config.GROQ_API_KEY)
 
+
+# ==================== Authentication Endpoints ====================
+
+@app.route('/api/auth/login', methods=['GET'])
+def login():
+    """
+    Initiate Google OAuth flow.
+    Redirects user to Google consent screen.
+    """
+    try:
+        auth_url = get_google_auth_url()
+        return redirect(auth_url)
+    except Exception as e:
+        print(f"Error initiating login: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to initiate login'
+        }), 500
+
+
+@app.route('/api/auth/callback', methods=['GET'])
+def auth_callback():
+    """
+    Handle Google OAuth callback.
+    Exchanges code for tokens, creates/updates user, issues JWT cookie.
+    """
+    try:
+        # Get authorization code from query params
+        code = request.args.get('code')
+
+        if not code:
+            return jsonify({
+                'success': False,
+                'error': 'No authorization code provided'
+            }), 400
+
+        # Exchange code for access and refresh tokens
+        tokens = exchange_code_for_tokens(code)
+        access_token = tokens['access_token']
+        refresh_token = tokens['refresh_token']
+
+        # Get user info from Google
+        user_info = get_google_user_info(access_token)
+
+        # Create or update user in database
+        user = get_user_by_google_id(user_info['id'])
+        if not user:
+            user = create_user(
+                google_id=user_info['id'],
+                email=user_info['email'],
+                name=user_info['name'],
+                picture=user_info['picture']
+            )
+
+        # Store encrypted refresh token
+        store_refresh_token(user['id'], refresh_token)
+
+        # Create JWT for session
+        jwt_token = create_jwt(user['id'])
+
+        # Set httpOnly cookie and redirect to frontend dashboard
+        response = make_response(redirect('http://localhost:5173/dashboard'))
+        response.set_cookie(
+            'jwt_token',
+            value=jwt_token,
+            httponly=True,
+            secure=False,  # Set to True in production with HTTPS
+            samesite='Lax',
+            max_age=Config.JWT_EXPIRATION
+        )
+
+        return response
+
+    except Exception as e:
+        print(f"Error in auth callback: {str(e)}")
+        # Redirect to frontend with error
+        return redirect('http://localhost:5173?error=auth_failed')
+
+
+@app.route('/api/auth/user', methods=['GET'])
+@require_auth
+def get_current_user():
+    """
+    Get current authenticated user's information.
+    Protected route - requires valid JWT cookie.
+    """
+    try:
+        user_id = g.user_id  # Set by @require_auth decorator
+        user = get_user_by_id(user_id)
+
+        if not user:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user['id'],
+                'email': user['email'],
+                'name': user['name'],
+                'picture': user['picture']
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"Error fetching user: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch user'
+        }), 500
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+@require_auth
+def logout():
+    """
+    Logout user by clearing JWT cookie.
+    Protected route - requires valid JWT cookie.
+    """
+    try:
+        response = make_response(jsonify({
+            'success': True,
+            'message': 'Logged out successfully'
+        }))
+
+        # Delete the JWT cookie
+        response.delete_cookie('jwt_token')
+
+        return response
+
+    except Exception as e:
+        print(f"Error during logout: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to logout'
+        }), 500
+
+
+# ==================== Message Endpoint ====================
+
 @app.route('/api/message', methods=['POST'])
+@require_auth  # Now requires authentication!
 def handle_message():
     """
     Handle incoming messages from the frontend.
-    Phase 2: Parse natural language calendar commands using Groq API.
+    Phase 3A: Now requires authentication.
+    Parse natural language calendar commands using Groq API.
 
     Expected JSON payload:
     {
@@ -43,6 +203,8 @@ def handle_message():
     }
     """
     try:
+        # Get authenticated user ID
+        user_id = g.user_id  # Set by @require_auth decorator
         # Get JSON data from request
         data = request.get_json()
 
@@ -132,6 +294,10 @@ Output: {{"action": "list", "title": "events", "date": "2024-01-19", "time": nul
         # Extract and parse the JSON response
         response_content = chat_completion.choices[0].message.content
         parsed_data = json.loads(response_content)
+
+        # TODO Phase 3C: Execute calendar action using Google Calendar API
+        # refresh_token = get_refresh_token(user_id)
+        # action_result = execute_calendar_action(refresh_token, parsed_data)
 
         return jsonify({
             'success': True,
