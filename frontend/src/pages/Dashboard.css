@@ -1,0 +1,355 @@
+/**
+ * Dashboard Styles
+ *
+ * Layout for the main application page with header, calendar, and chat.
+ *
+ * STRUCTURE:
+ * - Header: Fixed height, spans full width
+ * - Content: Two-column layout (calendar left, chat right)
+ * - Calendar: Placeholder for now (Phase 3C will have real calendar)
+ * - Chat: Scrollable message history + fixed input at bottom
+ */
+
+/* ==================== Main Dashboard Container ==================== */
+
+/* Full-height container for the entire dashboard */
+.dashboard {
+  /* Take up full viewport height */
+  min-height: 100vh;
+
+  /* Flexbox column layout (header on top, content below) */
+  display: flex;
+  flex-direction: column;
+
+  /* White background for main app area */
+  background-color: #ffffff;
+}
+
+/* Loading state centered on screen */
+.dashboard-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 18px;
+  color: #666;
+}
+
+/* ==================== Header ==================== */
+
+/* Top header with branding, user info, and logout */
+.dashboard-header {
+  /* Flexbox for horizontal layout */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  /* Header size and spacing */
+  height: 70px;
+  padding: 0 30px;
+
+  /* White background with subtle bottom border */
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+
+  /* Box shadow for depth */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Left side of header (app title) */
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+/* Dashboard title (app name in header) */
+.dashboard-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+/* Right side of header (user info + logout button) */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* User info container (avatar + name) */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* User profile picture */
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%; /* Circular avatar */
+  object-fit: cover; /* Prevent image distortion */
+  border: 2px solid #e0e0e0;
+}
+
+/* User avatar fallback - colored circle with initial */
+.user-avatar-fallback {
+  /* Same size as avatar image */
+  width: 36px;
+  height: 36px;
+
+  /* Circular shape */
+  border-radius: 50%;
+
+  /* Google blue background */
+  background-color: #4285f4;
+
+  /* White text */
+  color: white;
+
+  /* Center the initial letter */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Font styling for the initial */
+  font-size: 16px;
+  font-weight: 600;
+
+  /* Prevent text selection */
+  user-select: none;
+
+  /* Border to match avatar */
+  border: 2px solid #e0e0e0;
+}
+
+/* User name text */
+.user-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Logout button */
+.logout-btn {
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #e8e8e8;
+  color: #333;
+}
+
+/* ==================== Main Content Area ==================== */
+
+/* Two-column layout container (calendar left, chat right) */
+.dashboard-content {
+  /* Flex grows to fill remaining height below header */
+  flex: 1;
+
+  /* Grid layout for two columns */
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Equal width columns */
+
+  /* Prevent content from getting too tall */
+  height: calc(100vh - 70px); /* Full height minus header */
+  overflow: hidden; /* Children will handle scrolling */
+}
+
+/* Section titles for calendar and chat */
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+  padding: 0 20px;
+}
+
+/* ==================== Calendar Section (Left Column) ==================== */
+
+/* Calendar section container */
+.calendar-section {
+  /* Light background to differentiate from chat */
+  background-color: #fafafa;
+
+  /* Right border to separate from chat */
+  border-right: 1px solid #e0e0e0;
+
+  /* Padding around content */
+  padding: 24px 0;
+
+  /* Allow scrolling if calendar gets tall */
+  overflow-y: auto;
+}
+
+/* Calendar placeholder (Phase 3C will replace with real calendar) */
+.calendar-placeholder {
+  margin: 0 20px;
+  padding: 60px 40px;
+  background-color: #ffffff;
+  border: 2px dashed #ddd;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.calendar-placeholder p {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.placeholder-note {
+  font-size: 14px !important;
+  color: #999 !important;
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* ==================== Chat Section (Right Column) ==================== */
+
+/* Chat section container */
+.chat-section {
+  /* White background */
+  background-color: #ffffff;
+
+  /* Flexbox column for chat history + input */
+  display: flex;
+  flex-direction: column;
+
+  /* Padding */
+  padding: 24px 0;
+}
+
+/* Chat history container (scrollable area) */
+.chat-history {
+  /* Grow to fill available space */
+  flex: 1;
+
+  /* Enable vertical scrolling */
+  overflow-y: auto;
+
+  /* Padding around messages */
+  padding: 0 20px;
+
+  /* Margin to separate from input below */
+  margin-bottom: 20px;
+}
+
+/* Welcome message shown when no chat history exists */
+.welcome-message {
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  color: #666;
+}
+
+.welcome-message p {
+  margin-bottom: 16px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.welcome-message ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+}
+
+.welcome-message ul li {
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  background-color: #ffffff;
+  border-left: 3px solid #4285f4;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+}
+
+.welcome-message .note {
+  font-size: 13px;
+  color: #999;
+  font-style: italic;
+  margin-bottom: 0;
+}
+
+/* ==================== Responsive Design ==================== */
+
+/* Tablet and smaller - switch to single column */
+@media (max-width: 968px) {
+  /* Stack calendar and chat vertically */
+  .dashboard-content {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr; /* Calendar auto height, chat fills rest */
+    height: auto;
+  }
+
+  /* Calendar section adjustments */
+  .calendar-section {
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    overflow-y: visible;
+  }
+
+  /* Chat takes more space on stacked layout */
+  .chat-section {
+    min-height: 500px;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 600px) {
+  /* Smaller header */
+  .dashboard-header {
+    padding: 0 16px;
+    height: 60px;
+  }
+
+  .dashboard-title {
+    font-size: 20px;
+  }
+
+  /* Reduce user info on mobile */
+  .user-name {
+    display: none; /* Hide name on very small screens */
+  }
+
+  .user-avatar,
+  .user-avatar-fallback {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Adjust font size in fallback for smaller circle */
+  .user-avatar-fallback {
+    font-size: 14px;
+  }
+
+  /* Adjust content height for smaller header */
+  .dashboard-content {
+    height: calc(100vh - 60px);
+  }
+
+  /* Reduce padding on mobile */
+  .calendar-section,
+  .chat-section {
+    padding: 16px 0;
+  }
+
+  .section-title {
+    padding: 0 12px;
+  }
+
+  .chat-history {
+    padding: 0 12px;
+  }
+}

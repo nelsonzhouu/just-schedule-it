@@ -1,0 +1,153 @@
+/**
+ * MessageInput Styles
+ *
+ * Styling for the chat input form at the bottom of the chat section.
+ *
+ * DESIGN:
+ * - Horizontal flex layout (input + button)
+ * - Input grows to fill space
+ * - Button fixed width
+ * - Clean, modern look with focus states
+ */
+
+/* ==================== Form Container ==================== */
+
+/* Form wrapper with horizontal layout */
+.message-input-form {
+  /* Flexbox for horizontal layout */
+  display: flex;
+
+  /* Small gap between input and button */
+  gap: 12px;
+
+  /* Padding around the form */
+  padding: 0 20px;
+
+  /* Prevent form from shrinking in flex parent */
+  flex-shrink: 0;
+}
+
+/* ==================== Text Input ==================== */
+
+/* Input field for typing commands */
+.message-input-field {
+  /* Grow to fill available space */
+  flex: 1;
+
+  /* Padding inside input */
+  padding: 14px 16px;
+
+  /* Font size for readability */
+  font-size: 15px;
+
+  /* Light gray border */
+  border: 2px solid #e0e0e0;
+
+  /* Rounded corners */
+  border-radius: 8px;
+
+  /* Remove default outline (we'll add custom focus style) */
+  outline: none;
+
+  /* Smooth transition for border color */
+  transition: border-color 0.2s ease;
+
+  /* Background color */
+  background-color: #ffffff;
+
+  /* Text color */
+  color: #333;
+}
+
+/* Placeholder text styling */
+.message-input-field::placeholder {
+  color: #999;
+}
+
+/* Focus state - highlight the border */
+.message-input-field:focus {
+  /* Blue border when focused (matches Google brand) */
+  border-color: #4285f4;
+
+  /* Subtle shadow for depth */
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+}
+
+/* Disabled state - grayed out */
+.message-input-field:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* ==================== Submit Button ==================== */
+
+/* Submit button */
+.message-input-submit {
+  /* Fixed width for button */
+  padding: 14px 28px;
+
+  /* Font styling */
+  font-size: 15px;
+  font-weight: 600;
+
+  /* Google blue color scheme */
+  background-color: #4285f4;
+  color: white;
+
+  /* Remove border */
+  border: none;
+
+  /* Rounded corners to match input */
+  border-radius: 8px;
+
+  /* Pointer cursor */
+  cursor: pointer;
+
+  /* Smooth transitions */
+  transition: background-color 0.2s ease, transform 0.1s ease;
+
+  /* Prevent button from shrinking */
+  flex-shrink: 0;
+}
+
+/* Hover state - slightly darker blue */
+.message-input-submit:hover:not(:disabled) {
+  background-color: #357ae8;
+}
+
+/* Active state - pressed down effect */
+.message-input-submit:active:not(:disabled) {
+  background-color: #2a66c9;
+  transform: translateY(1px); /* Slight downward movement */
+}
+
+/* Disabled state - grayed out */
+.message-input-submit:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ==================== Responsive Design ==================== */
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  /* Reduce padding on mobile */
+  .message-input-form {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  /* Smaller text on mobile */
+  .message-input-field {
+    font-size: 14px;
+    padding: 12px 14px;
+  }
+
+  /* Smaller button on mobile */
+  .message-input-submit {
+    font-size: 14px;
+    padding: 12px 20px;
+  }
+}

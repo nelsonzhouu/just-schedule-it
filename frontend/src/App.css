@@ -1,125 +1,87 @@
+/**
+ * Global Styles
+ *
+ * Base styles applied to the entire application.
+ * Page-specific and component-specific styles are in their own CSS files.
+ *
+ * STRUCTURE:
+ * - CSS reset (normalize spacing and box model)
+ * - Body/root styles (fonts, colors, background)
+ * - Utility classes (reusable styles across components)
+ */
+
+/* ==================== CSS Reset ==================== */
+
+/* Reset default browser styles for consistency across browsers */
 * {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
+  box-sizing: border-box; /* Include padding and border in element's total width/height */
 }
 
+/* ==================== Body & Root Styles ==================== */
+
+/* Base styles for the entire application */
 body {
+  /* System font stack - uses native fonts for each operating system */
+  /* Provides the fastest rendering and most familiar look for users */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
+
+  /* Smooth font rendering on webkit (Safari, Chrome) and Firefox */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Light gray background - clean, modern look */
   background-color: #f5f5f5;
+
+  /* Ensure body takes up full viewport height */
+  min-height: 100vh;
 }
 
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 40px 20px;
+/* Root element (#root) should also take full height for proper layout */
+#root {
+  min-height: 100vh;
 }
 
-h1 {
-  font-size: 2.5rem;
-  color: #333;
-  margin-bottom: 10px;
-  text-align: center;
+/* ==================== Utility Classes ==================== */
+
+/**
+ * Button Reset
+ * Base class for buttons to remove default browser styling
+ */
+button {
+  font-family: inherit; /* Use same font as parent element */
+  cursor: pointer; /* Show pointer cursor on hover */
+  border: none; /* Remove default border */
+  outline: none; /* Remove default outline (we'll add our own focus styles) */
 }
 
-.subtitle {
-  text-align: center;
-  color: #666;
-  margin-bottom: 40px;
-  font-size: 1.1rem;
+/**
+ * Input Reset
+ * Base class for inputs to ensure consistent styling
+ */
+input {
+  font-family: inherit; /* Use same font as parent element */
+  outline: none; /* Remove default outline (we'll add our own focus styles) */
 }
 
-.message-form {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+/**
+ * Disabled Elements
+ * Consistent styling for disabled interactive elements
+ */
+button:disabled,
+input:disabled {
+  cursor: not-allowed; /* Show "not allowed" cursor */
+  opacity: 0.6; /* Reduce opacity to indicate disabled state */
 }
 
-.message-input {
-  flex: 1;
-  padding: 12px 16px;
-  font-size: 16px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.message-input:focus {
-  border-color: #4CAF50;
-}
-
-.message-input:disabled {
-  background-color: #f0f0f0;
-  cursor: not-allowed;
-}
-
-.submit-button {
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  color: white;
-  background-color: #4CAF50;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.submit-button:hover:not(:disabled) {
-  background-color: #45a049;
-}
-
-.submit-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.error-box {
-  padding: 16px;
-  background-color: #ffebee;
-  border-left: 4px solid #f44336;
-  border-radius: 4px;
-  color: #c62828;
-  margin-bottom: 20px;
-}
-
-.response-box {
-  padding: 16px;
-  background-color: #e8f5e9;
-  border-left: 4px solid #4CAF50;
-  border-radius: 4px;
-  margin-bottom: 20px;
-}
-
-.response-box strong {
-  color: #2e7d32;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.response-box p {
-  color: #1b5e20;
-  margin: 0;
-}
-
-.info-box {
-  padding: 16px;
-  background-color: #e3f2fd;
-  border-left: 4px solid #2196F3;
-  border-radius: 4px;
-  margin-top: 20px;
-}
-
-.info-box p {
-  color: #1565c0;
-  margin-bottom: 8px;
-}
-
-.info-box p:last-child {
-  margin-bottom: 0;
+/**
+ * Links
+ * Remove default link styling for a cleaner look
+ */
+a {
+  text-decoration: none; /* Remove underline */
+  color: inherit; /* Inherit color from parent */
 }

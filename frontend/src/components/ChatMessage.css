@@ -1,0 +1,265 @@
+/**
+ * ChatMessage Styles
+ *
+ * Chat bubble styling for user messages and responses.
+ *
+ * DESIGN PATTERN:
+ * - User messages: Right-aligned, blue background
+ * - Responses: Left-aligned, gray background (red if error)
+ * - Chat bubble style with rounded corners
+ * - Timestamps at bottom of each bubble
+ */
+
+/* ==================== Message Container ==================== */
+
+/* Container for a single message exchange (user + response) */
+.chat-message {
+  /* Space between message exchanges */
+  margin-bottom: 24px;
+}
+
+/* ==================== User Message (Right-aligned) ==================== */
+
+/* Container for user message - right-aligned */
+.message-user {
+  /* Flexbox for right alignment */
+  display: flex;
+  justify-content: flex-end; /* Push to right */
+
+  /* Space below before response */
+  margin-bottom: 8px;
+}
+
+/* User message bubble */
+.message-bubble-user {
+  /* Google blue background */
+  background-color: #4285f4;
+
+  /* White text */
+  color: white;
+
+  /* Max width so bubbles don't stretch too wide */
+  max-width: 75%;
+}
+
+/* ==================== Response Message (Left-aligned) ==================== */
+
+/* Container for response - left-aligned */
+.message-response {
+  /* Flexbox for left alignment */
+  display: flex;
+  justify-content: flex-start; /* Push to left */
+}
+
+/* Response bubble */
+.message-bubble-response {
+  /* Light gray background */
+  background-color: #f1f3f4;
+
+  /* Dark text */
+  color: #333;
+
+  /* Max width */
+  max-width: 80%;
+}
+
+/* Error response - red background */
+.message-bubble-error {
+  background-color: #ffebee;
+  border-left: 4px solid #f44336;
+}
+
+/* ==================== Bubble Styling ==================== */
+
+/* Shared bubble styles */
+.message-bubble {
+  /* Padding inside bubble */
+  padding: 12px 16px;
+
+  /* Rounded corners */
+  border-radius: 12px;
+
+  /* Shadow for depth */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+  /* Prevent text from breaking out */
+  word-wrap: break-word;
+}
+
+/* Message text inside bubble */
+.message-text {
+  /* Remove default paragraph margins */
+  margin: 0;
+
+  /* Font size */
+  font-size: 15px;
+
+  /* Line height for readability */
+  line-height: 1.5;
+
+  /* Space below before timestamp */
+  margin-bottom: 6px;
+}
+
+/* Timestamp at bottom of bubble */
+.message-time {
+  /* Small, subtle text */
+  font-size: 11px;
+
+  /* Display as block for alignment */
+  display: block;
+
+  /* Align to right within bubble */
+  text-align: right;
+
+  /* Margin above */
+  margin-top: 4px;
+}
+
+/* Timestamp color in user bubbles (white on blue) */
+.message-bubble-user .message-time {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Timestamp color in response bubbles */
+.message-bubble-response .message-time {
+  color: #999;
+}
+
+/* ==================== Response Data Display ==================== */
+
+/* Container for parsed response data */
+.response-data {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Each field in the response (e.g., Action: create) */
+.response-field {
+  /* Space between fields */
+  margin-bottom: 8px;
+
+  /* Last field has no margin */
+}
+
+.response-field:last-of-type {
+  margin-bottom: 12px;
+}
+
+/* Field label (e.g., "Action:") */
+.field-label {
+  /* Bold and slightly smaller */
+  font-weight: 600;
+  font-size: 13px;
+
+  /* Gray color */
+  color: #666;
+
+  /* Space to the right of label */
+  margin-right: 8px;
+}
+
+/* Field value (e.g., "create") */
+.field-value {
+  /* Normal weight */
+  font-weight: 400;
+
+  /* Dark color */
+  color: #333;
+}
+
+/* Action badge - styled badge for action type */
+.action-badge {
+  /* Inline block for padding */
+  display: inline-block;
+
+  /* Padding around text */
+  padding: 2px 10px;
+
+  /* Rounded corners */
+  border-radius: 12px;
+
+  /* Blue background */
+  background-color: #e3f2fd;
+
+  /* Blue text */
+  color: #1976d2;
+
+  /* Bold text */
+  font-weight: 600;
+
+  /* Slightly smaller */
+  font-size: 12px;
+
+  /* Uppercase for emphasis */
+  text-transform: uppercase;
+}
+
+/* Confidence score - styled differently */
+.confidence-score {
+  /* Green color for high confidence */
+  color: #2e7d32;
+
+  /* Bold */
+  font-weight: 600;
+}
+
+/* Note at bottom of response */
+.response-note {
+  /* Smaller, italic text */
+  font-size: 12px;
+  font-style: italic;
+
+  /* Gray color */
+  color: #999;
+
+  /* Margin above */
+  margin-top: 12px;
+
+  /* No margin below */
+  margin-bottom: 0;
+}
+
+/* ==================== Error Display ==================== */
+
+/* Error message container */
+.response-error {
+  color: #c62828;
+}
+
+.response-error strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.response-error p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ==================== Responsive Design ==================== */
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  /* Allow bubbles to take more width on mobile */
+  .message-bubble-user,
+  .message-bubble-response {
+    max-width: 85%;
+  }
+
+  /* Smaller text on mobile */
+  .message-text {
+    font-size: 14px;
+  }
+
+  .response-data {
+    font-size: 13px;
+  }
+
+  /* Smaller padding on mobile */
+  .message-bubble {
+    padding: 10px 14px;
+  }
+}

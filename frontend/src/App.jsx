@@ -1,91 +1,118 @@
-import { useState } from 'react'
-import axios from 'axios'
+/**
+ * Main App Component
+ *
+ * Sets up routing for the entire application.
+ *
+ * ROUTES:
+ * - / (HomePage): Login page for unauthenticated users
+ * - /dashboard (Dashboard): Main app page for authenticated users (protected)
+ *
+ * AUTHENTICATION FLOW:
+ * 1. User visits / and sees "Login with Google" button
+ * 2. Clicks button → redirects to backend /api/auth/login
+ * 3. Backend redirects to Google OAuth consent screen
+ * 4. User grants permissions → Google redirects back to backend callback
+ * 5. Backend sets httpOnly JWT cookie → redirects to /dashboard
+ * 6. ProtectedRoute checks authentication before showing Dashboard
+ *
+ * WHY ProtectedRoute:
+ * - Prevents unauthorized users from accessing /dashboard
+ * - Redirects to / if not logged in
+ * - Only one place to handle auth logic (reusable)
+ */
 
-function App() {
-  const [message, setMessage] = useState('')
-  const [response, setResponse] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { checkAuth } from './utils/auth'
+import HomePage from './pages/HomePage'
+import Dashboard from './pages/Dashboard'
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+/**
+ * ProtectedRoute Component
+ *
+ * Wrapper for routes that require authentication.
+ * Checks if user is logged in before rendering the protected component.
+ *
+ * HOW IT WORKS:
+ * 1. On mount, calls checkAuth() to verify the JWT cookie
+ * 2. While checking, shows "Loading..." (prevents flash of wrong content)
+ * 3. If authenticated, renders the children (Dashboard)
+ * 4. If not authenticated, redirects to / (HomePage)
+ *
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - The protected component to render if authenticated
+ */
+function ProtectedRoute({ children }) {
+  // Track authentication state
+  // null = still checking, true = authenticated, false = not authenticated
+  const [isAuthenticated, setIsAuthenticated] = useState(null)
 
-    // Clear previous response and errors
-    setResponse('')
-    setError('')
+  // Check authentication when component mounts
+  useEffect(() => {
+    async function verify() {
+      // Call the auth utility to check if user is logged in
+      // This makes a request to /api/auth/user with the httpOnly cookie
+      const user = await checkAuth()
 
-    // Validate input
-    if (!message.trim()) {
-      setError('Please enter a message')
-      return
+      // If we got a user object back, they're authenticated
+      // If we got null, they're not logged in
+      setIsAuthenticated(user !== null)
     }
 
-    setLoading(true)
+    verify()
+  }, []) // Empty array means this only runs once when component mounts
 
-    try {
-      // Send POST request to Flask backend
-      // The /api prefix is automatically proxied to localhost:5000 by Vite
-      const res = await axios.post('/api/message', {
-        message: message
-      })
-
-      if (res.data.success) {
-        setResponse(JSON.stringify(res.data.data, null, 2))
-      } else {
-        setError(res.data.error || 'An error occurred')
-      }
-    } catch (err) {
-      console.error('Error sending message:', err)
-      setError(
-        err.response?.data?.error ||
-        'Failed to connect to server. Make sure the Flask backend is running.'
-      )
-    } finally {
-      setLoading(false)
-    }
+  // Still checking authentication - show loading state
+  // This prevents a flash of the wrong page while we check
+  if (isAuthenticated === null) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '20px'
+      }}>
+        Loading...
+      </div>
+    )
   }
 
+  // Not authenticated - redirect to login page
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />
+  }
+
+  // Authenticated - render the protected component
+  return children
+}
+
+/**
+ * App Component
+ *
+ * Main application component that sets up routing.
+ *
+ * ROUTING STRUCTURE:
+ * - / → HomePage (public, shows login button)
+ * - /dashboard → Dashboard (protected, requires authentication)
+ */
+function App() {
   return (
-    <div className="container">
-      <h1>JustScheduleIt</h1>
-      <p className="subtitle">Manage your Google Calendar with natural language</p>
+    <Routes>
+      {/* Public route - anyone can access */}
+      <Route path="/" element={<HomePage />} />
 
-      <form onSubmit={handleSubmit} className="message-form">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message to send to the backend..."
-          className="message-input"
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          className="submit-button"
-          disabled={loading}
-        >
-          {loading ? 'Sending...' : 'Send'}
-        </button>
-      </form>
-
-      {error && (
-        <div className="error-box">
-          {error}
-        </div>
-      )}
-
-      {response && (
-        <div className="response-box">
-          <strong>Response:</strong>
-          <p>{response}</p>
-        </div>
-      )}
-
-      <div className="info-box">
-        <p><strong>Phase 1:</strong> Testing Flask ↔ React communication</p>
-        <p>The backend will echo back whatever you send.</p>
-      </div>
-    </div>
+      {/* Protected route - requires authentication */}
+      {/* ProtectedRoute will redirect to / if user is not logged in */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   )
 }
 

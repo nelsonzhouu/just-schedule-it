@@ -1,0 +1,507 @@
+/**
+ * HomePage Styles
+ *
+ * Modern SaaS landing page design with header, hero, and features sections.
+ *
+ * LAYOUT:
+ * - Header: Slim compact header with logo, tagline, and ghost button
+ * - Hero: Centered content with CTA button
+ * - Features: 3-column grid layout (stacks on mobile)
+ *
+ * DESIGN:
+ * - Warm cream background in hero section for depth
+ * - Clean, minimal aesthetic
+ * - Subtle shadows and borders for depth
+ * - Playfair Display serif font for headline
+ * - Ghost outlined button in header, solid pill button in hero
+ */
+
+/* ==================== Main Container ==================== */
+
+/* Full-page container with white background */
+.homepage {
+  /* White background */
+  background-color: #ffffff;
+
+  /* Take up full viewport */
+  min-height: 100vh;
+
+  /* Flexbox column layout (header, hero, features stack vertically) */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==================== Header ==================== */
+
+/* Top header with logo and login button - slim and compact */
+.homepage-header {
+  /* Flexbox for horizontal layout */
+  display: flex;
+  justify-content: space-between; /* Logo left, button right */
+  align-items: center; /* Vertical centering */
+
+  /* Reduced padding for slim, compact header */
+  padding: 12px 60px;
+
+  /* Subtle bottom border */
+  border-bottom: 1px solid #f0f0f0;
+
+  /* White background */
+  background-color: #ffffff;
+}
+
+/* Left side of header - logo and tagline */
+.header-left {
+  /* Flexbox for horizontal layout */
+  display: flex;
+  align-items: center;
+
+  /* Space between logo and tagline */
+  gap: 16px;
+}
+
+/* App name/logo in header - bigger and bolder like a logo */
+.homepage-logo {
+  /* Playfair Display - elegant serif font matching headline */
+  font-family: 'Playfair Display', serif;
+
+  /* Larger font size for logo presence */
+  font-size: 28px;
+
+  /* Bold weight for logo */
+  font-weight: 700;
+
+  /* Dark color */
+  color: #1a1a1a;
+
+  /* Remove default margins */
+  margin: 0;
+
+  /* Slight letter spacing for elegance */
+  letter-spacing: -0.5px;
+}
+
+/* Tagline next to logo */
+.header-tagline {
+  /* Smaller font size */
+  font-size: 12px;
+
+  /* Normal weight */
+  font-weight: 400;
+
+  /* Lighter, more muted gray color */
+  color: #999;
+
+  /* Italic style for differentiation */
+  font-style: italic;
+}
+
+/* Login button in header - ghost/outlined style */
+.header-login-btn {
+  /* Inline-flex for icon + text layout */
+  display: inline-flex;
+  align-items: center;
+
+  /* Space between icon and text */
+  gap: 10px;
+
+  /* Padding */
+  padding: 10px 24px;
+
+  /* Transparent background for ghost button */
+  background-color: transparent;
+
+  /* Dark text color */
+  color: #1a1a1a;
+
+  /* Font styling */
+  font-size: 15px;
+  font-weight: 600;
+
+  /* Pill shape with large border radius */
+  border-radius: 50px;
+
+  /* Dark border */
+  border: 2px solid #1a1a1a;
+
+  /* Pointer cursor */
+  cursor: pointer;
+
+  /* Smooth transitions for hover effect */
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  /* Prevent text selection */
+  user-select: none;
+}
+
+/* Hover state for ghost button - flip to dark bg with white text */
+.header-login-btn:hover {
+  background-color: #1a1a1a;
+  color: white;
+}
+
+/* Hover state for Google icon - change stroke color to white */
+.header-login-btn:hover .google-icon path {
+  stroke: white;
+}
+
+/* Active state for login button */
+.header-login-btn:active {
+  background-color: #000000;
+}
+
+/* Google icon in login button */
+.google-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ==================== Hero Section ==================== */
+
+/* Hero section with centered content - warm background for depth */
+.hero-section {
+  /* Further reduced padding to fit everything on one screen */
+  padding: 70px 40px;
+
+  /* Flexbox for centering */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* Warm cream/beige background for subtle depth */
+  /* Similar to Slite's warm tone */
+  background-color: #FAF8F5;
+}
+
+/* Hero content container */
+.hero-content {
+  /* Center text */
+  text-align: center;
+
+  /* Max width for readability */
+  max-width: 800px;
+}
+
+/* Main headline - elegant serif font */
+.hero-headline {
+  /* Playfair Display - elegant serif font for headlines */
+  font-family: 'Playfair Display', serif;
+
+  /* Large, bold font */
+  font-size: 52px;
+  font-weight: 700;
+
+  /* Dark color */
+  color: #1a1a1a;
+
+  /* Tight line height */
+  line-height: 1.2;
+
+  /* Space below */
+  margin-bottom: 20px;
+
+  /* Remove default top margin */
+  margin-top: 0;
+}
+
+/* Slogan text */
+.hero-slogan {
+  /* Medium size */
+  font-size: 22px;
+
+  /* Gray color for hierarchy */
+  color: #666;
+
+  /* Comfortable line height */
+  line-height: 1.5;
+
+  /* Space below before CTA button */
+  margin: 0 0 32px 0;
+}
+
+/* Try Now CTA button - solid dark pill button */
+.hero-cta-btn {
+  /* Inline-block for centering */
+  display: inline-block;
+
+  /* Padding for pill shape */
+  padding: 14px 40px;
+
+  /* Dark background */
+  background-color: #1a1a1a;
+
+  /* White text */
+  color: white;
+
+  /* Font styling */
+  font-size: 16px;
+  font-weight: 600;
+
+  /* Pill shape with large border radius */
+  border-radius: 50px;
+
+  /* Remove border */
+  border: none;
+
+  /* Pointer cursor */
+  cursor: pointer;
+
+  /* Smooth transition for hover effect */
+  transition: background-color 0.2s ease;
+
+  /* Prevent text selection */
+  user-select: none;
+}
+
+/* Hover state - slightly lighter background */
+.hero-cta-btn:hover {
+  background-color: #333333;
+}
+
+/* Active state - darker background */
+.hero-cta-btn:active {
+  background-color: #000000;
+}
+
+/* ==================== Features Section ==================== */
+
+/* Features section container */
+.features-section {
+  /* Further reduced padding to ensure cards are fully visible */
+  padding: 50px 60px 70px;
+
+  /* Cream background matching hero section */
+  background-color: #FAF8F5;
+}
+
+/* Features container - holds the 3 cards */
+.features-container {
+  /* CSS Grid for 3-column layout */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 equal columns */
+
+  /* Reduced gap for more compact layout */
+  gap: 30px;
+
+  /* Max width for content */
+  max-width: 1200px;
+
+  /* Center the container */
+  margin: 0 auto;
+}
+
+/* ==================== Feature Card ==================== */
+
+/* Individual feature card - more compact and polished */
+.feature-card {
+  /* White background */
+  background-color: #ffffff;
+
+  /* Reduced padding for more compact design */
+  padding: 32px 24px;
+
+  /* Rounded corners */
+  border-radius: 12px;
+
+  /* Subtle border */
+  border: 1px solid #e8e8e8;
+
+  /* Subtle shadow for depth */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  /* Center text */
+  text-align: center;
+
+  /* Smooth transition for hover effect */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Hover effect - slight lift */
+.feature-card:hover {
+  /* Lift up slightly */
+  transform: translateY(-4px);
+
+  /* Stronger shadow on hover */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Feature icon container */
+.feature-icon {
+  /* Reduced space below icon for more compact design */
+  margin-bottom: 16px;
+
+  /* Flexbox for centering icon */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Feature title */
+.feature-title {
+  /* Font size */
+  font-size: 18px;
+
+  /* Bold weight */
+  font-weight: 700;
+
+  /* Dark color */
+  color: #1a1a1a;
+
+  /* Reduced space below */
+  margin-bottom: 10px;
+
+  /* Remove default top margin */
+  margin-top: 0;
+}
+
+/* Feature description */
+.feature-description {
+  /* Slightly smaller font size for compact design */
+  font-size: 14px;
+
+  /* Gray color */
+  color: #666;
+
+  /* Line height for readability */
+  line-height: 1.6;
+
+  /* Remove default margins */
+  margin: 0;
+}
+
+/* ==================== Responsive Design ==================== */
+
+/* Tablet screens */
+@media (max-width: 968px) {
+  /* Reduce header padding */
+  .homepage-header {
+    padding: 12px 40px;
+  }
+
+  /* Stack logo and tagline on smaller screens */
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* Reduce logo size */
+  .homepage-logo {
+    font-size: 24px;
+  }
+
+  /* Reduce tagline size */
+  .header-tagline {
+    font-size: 12px;
+  }
+
+  /* Reduce hero padding */
+  .hero-section {
+    padding: 60px 30px;
+  }
+
+  /* Reduce headline size */
+  .hero-headline {
+    font-size: 42px;
+  }
+
+  /* Reduce slogan size */
+  .hero-slogan {
+    font-size: 20px;
+  }
+
+  /* Reduce features padding */
+  .features-section {
+    padding: 40px 40px 60px;
+  }
+
+  /* Stack feature cards in 1 column on tablet */
+  .features-container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  /* Reduce card padding */
+  .feature-card {
+    padding: 28px 20px;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 600px) {
+  /* Further reduce header padding */
+  .homepage-header {
+    padding: 12px 20px;
+  }
+
+  /* Keep stacked layout */
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* Smaller logo */
+  .homepage-logo {
+    font-size: 22px;
+  }
+
+  /* Smaller tagline */
+  .header-tagline {
+    font-size: 11px;
+  }
+
+  /* Smaller login button */
+  .header-login-btn {
+    font-size: 14px;
+    padding: 8px 18px;
+  }
+
+  /* Further reduce hero padding */
+  .hero-section {
+    padding: 50px 20px;
+  }
+
+  /* Further reduce headline size */
+  .hero-headline {
+    font-size: 32px;
+  }
+
+  /* Further reduce slogan size */
+  .hero-slogan {
+    font-size: 18px;
+    margin-bottom: 24px;
+  }
+
+  /* Smaller CTA button on mobile */
+  .hero-cta-btn {
+    font-size: 15px;
+    padding: 12px 32px;
+  }
+
+  /* Further reduce features padding */
+  .features-section {
+    padding: 35px 20px 50px;
+  }
+
+  /* Reduce gap between cards */
+  .features-container {
+    gap: 20px;
+  }
+
+  /* Further reduce card padding */
+  .feature-card {
+    padding: 24px 18px;
+  }
+
+  /* Reduce feature title size */
+  .feature-title {
+    font-size: 17px;
+  }
+
+  /* Feature description stays the same */
+  .feature-description {
+    font-size: 14px;
+  }
+}
