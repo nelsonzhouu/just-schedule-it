@@ -20,8 +20,8 @@
   /* Small gap between input and button */
   gap: 12px;
 
-  /* Padding around the form */
-  padding: 0 20px;
+  /* No padding - parent card already has padding */
+  padding: 0;
 
   /* Prevent form from shrinking in flex parent */
   flex-shrink: 0;
@@ -133,9 +133,9 @@
 
 /* Mobile adjustments */
 @media (max-width: 600px) {
-  /* Reduce padding on mobile */
+  /* No padding on mobile - parent card has padding */
   .message-input-form {
-    padding: 0 12px;
+    padding: 0;
     gap: 8px;
   }
 

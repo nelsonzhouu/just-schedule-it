@@ -150,6 +150,7 @@ function Dashboard() {
       <header className="dashboard-header">
         <div className="header-left">
           <h1 className="dashboard-title">JustScheduleIt</h1>
+          <span className="header-tagline">AI-powered calendar assistant</span>
         </div>
 
         <div className="header-right">

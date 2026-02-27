@@ -1,18 +1,25 @@
 /**
  * Dashboard Styles
  *
- * Layout for the main application page with header, calendar, and chat.
+ * Layout for the main application page - designed to match homepage aesthetic.
+ *
+ * DESIGN CONSISTENCY:
+ * - Same header style as homepage (slim, compact)
+ * - Cream background (#FAF8F5) matching homepage hero
+ * - White card backgrounds with same shadows as homepage feature cards
+ * - Playfair Display font for logo
+ * - Ghost pill button for logout
  *
  * STRUCTURE:
  * - Header: Fixed height, spans full width
  * - Content: Two-column layout (calendar left, chat right)
- * - Calendar: Placeholder for now (Phase 3C will have real calendar)
- * - Chat: Scrollable message history + fixed input at bottom
+ * - Calendar: White card with border/shadow
+ * - Chat: White card with border/shadow
  */
 
 /* ==================== Main Dashboard Container ==================== */
 
-/* Full-height container for the entire dashboard */
+/* Full-height container with cream background matching homepage */
 .dashboard {
   /* Take up full viewport height */
   min-height: 100vh;
@@ -21,8 +28,8 @@
   display: flex;
   flex-direction: column;
 
-  /* White background for main app area */
-  background-color: #ffffff;
+  /* Cream background matching homepage hero section */
+  background-color: #FAF8F5;
 }
 
 /* Loading state centered on screen */
@@ -33,41 +40,70 @@
   min-height: 100vh;
   font-size: 18px;
   color: #666;
+  background-color: #FAF8F5;
 }
 
 /* ==================== Header ==================== */
 
-/* Top header with branding, user info, and logout */
+/* Top header matching homepage header exactly */
 .dashboard-header {
   /* Flexbox for horizontal layout */
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  /* Header size and spacing */
-  height: 70px;
-  padding: 0 30px;
+  /* Slim padding matching homepage (12px) */
+  padding: 12px 60px;
 
-  /* White background with subtle bottom border */
+  /* White background with subtle border */
   background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-
-  /* Box shadow for depth */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid #f0f0f0;
 }
 
-/* Left side of header (app title) */
+/* Left side of header - logo and tagline */
 .header-left {
+  /* Flexbox for horizontal layout */
   display: flex;
   align-items: center;
+
+  /* Space between logo and tagline */
+  gap: 16px;
 }
 
-/* Dashboard title (app name in header) */
+/* Dashboard title (app name) - matching homepage logo style */
 .dashboard-title {
-  font-size: 24px;
-  font-weight: 600;
+  /* Playfair Display - elegant serif font matching homepage */
+  font-family: 'Playfair Display', serif;
+
+  /* Font size matching homepage logo */
+  font-size: 28px;
+
+  /* Bold weight */
+  font-weight: 700;
+
+  /* Dark color */
   color: #1a1a1a;
+
+  /* Remove default margins */
   margin: 0;
+
+  /* Slight letter spacing for elegance */
+  letter-spacing: -0.5px;
+}
+
+/* Tagline next to logo - matching homepage */
+.header-tagline {
+  /* Small font size */
+  font-size: 12px;
+
+  /* Normal weight */
+  font-weight: 400;
+
+  /* Lighter, more muted gray color */
+  color: #999;
+
+  /* Italic style for differentiation */
+  font-style: italic;
 }
 
 /* Right side of header (user info + logout button) */
@@ -102,8 +138,8 @@
   /* Circular shape */
   border-radius: 50%;
 
-  /* Google blue background */
-  background-color: #4285f4;
+  /* Dark background matching color scheme */
+  background-color: #1a1a1a;
 
   /* White text */
   color: white;
@@ -131,22 +167,47 @@
   color: #333;
 }
 
-/* Logout button */
+/* Logout button - ghost pill style matching homepage login button */
 .logout-btn {
-  padding: 8px 18px;
-  font-size: 14px;
+  /* Inline-flex for proper sizing */
+  display: inline-flex;
+  align-items: center;
+
+  /* Padding */
+  padding: 10px 24px;
+
+  /* Font styling */
+  font-size: 15px;
   font-weight: 600;
-  color: #666;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+
+  /* Dark text color */
+  color: #1a1a1a;
+
+  /* Transparent background for ghost button */
+  background-color: transparent;
+
+  /* Dark border */
+  border: 2px solid #1a1a1a;
+
+  /* Pill shape with large border radius */
+  border-radius: 50px;
+
+  /* Pointer cursor */
   cursor: pointer;
-  transition: all 0.2s ease;
+
+  /* Smooth transitions for hover effect */
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* Hover state - flip to dark background with white text */
 .logout-btn:hover {
-  background-color: #e8e8e8;
-  color: #333;
+  background-color: #1a1a1a;
+  color: white;
+}
+
+/* Active state */
+.logout-btn:active {
+  background-color: #000000;
 }
 
 /* ==================== Main Content Area ==================== */
@@ -160,32 +221,53 @@
   display: grid;
   grid-template-columns: 1fr 1fr; /* Equal width columns */
 
+  /* Gap between calendar and chat cards */
+  gap: 30px;
+
+  /* Padding around content */
+  padding: 30px 60px;
+
   /* Prevent content from getting too tall */
-  height: calc(100vh - 70px); /* Full height minus header */
+  max-height: calc(100vh - 52px); /* Full height minus header */
   overflow: hidden; /* Children will handle scrolling */
 }
 
-/* Section titles for calendar and chat */
+/* Section titles for calendar and chat - matching homepage card titles */
 .section-title {
+  /* Font size matching homepage feature card titles */
   font-size: 18px;
-  font-weight: 600;
+
+  /* Bold weight */
+  font-weight: 700;
+
+  /* Dark color */
   color: #1a1a1a;
+
+  /* Space below */
   margin-bottom: 16px;
-  padding: 0 20px;
+
+  /* Remove default top margin */
+  margin-top: 0;
 }
 
 /* ==================== Calendar Section (Left Column) ==================== */
 
-/* Calendar section container */
+/* Calendar section container - white card style */
 .calendar-section {
-  /* Light background to differentiate from chat */
-  background-color: #fafafa;
+  /* White background like homepage feature cards */
+  background-color: #ffffff;
 
-  /* Right border to separate from chat */
-  border-right: 1px solid #e0e0e0;
+  /* Padding inside card */
+  padding: 32px 24px;
 
-  /* Padding around content */
-  padding: 24px 0;
+  /* Rounded corners */
+  border-radius: 12px;
+
+  /* Subtle border matching homepage cards */
+  border: 1px solid #e8e8e8;
+
+  /* Subtle shadow matching homepage cards */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   /* Allow scrolling if calendar gets tall */
   overflow-y: auto;
@@ -193,9 +275,8 @@
 
 /* Calendar placeholder (Phase 3C will replace with real calendar) */
 .calendar-placeholder {
-  margin: 0 20px;
   padding: 60px 40px;
-  background-color: #ffffff;
+  background-color: #fafafa;
   border: 2px dashed #ddd;
   border-radius: 12px;
   text-align: center;
@@ -217,17 +298,29 @@
 
 /* ==================== Chat Section (Right Column) ==================== */
 
-/* Chat section container */
+/* Chat section container - white card style */
 .chat-section {
-  /* White background */
+  /* White background like homepage feature cards */
   background-color: #ffffff;
+
+  /* Padding inside card */
+  padding: 32px 24px;
+
+  /* Rounded corners */
+  border-radius: 12px;
+
+  /* Subtle border matching homepage cards */
+  border: 1px solid #e8e8e8;
+
+  /* Subtle shadow matching homepage cards */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   /* Flexbox column for chat history + input */
   display: flex;
   flex-direction: column;
 
-  /* Padding */
-  padding: 24px 0;
+  /* Prevent overflow */
+  overflow: hidden;
 }
 
 /* Chat history container (scrollable area) */
@@ -238,11 +331,11 @@
   /* Enable vertical scrolling */
   overflow-y: auto;
 
-  /* Padding around messages */
-  padding: 0 20px;
-
   /* Margin to separate from input below */
   margin-bottom: 20px;
+
+  /* Remove extra padding (card already has padding) */
+  padding: 0;
 }
 
 /* Welcome message shown when no chat history exists */
@@ -269,7 +362,7 @@
   padding: 10px 16px;
   margin-bottom: 8px;
   background-color: #ffffff;
-  border-left: 3px solid #4285f4;
+  border-left: 3px solid #1a1a1a;
   border-radius: 4px;
   font-size: 14px;
   color: #333;
@@ -286,17 +379,39 @@
 
 /* Tablet and smaller - switch to single column */
 @media (max-width: 968px) {
+  /* Reduce header padding */
+  .dashboard-header {
+    padding: 12px 40px;
+  }
+
+  /* Stack logo and tagline on smaller screens */
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* Reduce logo size */
+  .dashboard-title {
+    font-size: 24px;
+  }
+
+  /* Reduce tagline size */
+  .header-tagline {
+    font-size: 11px;
+  }
+
   /* Stack calendar and chat vertically */
   .dashboard-content {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr; /* Calendar auto height, chat fills rest */
-    height: auto;
+    gap: 24px;
+    padding: 24px 40px;
+    max-height: none;
   }
 
   /* Calendar section adjustments */
   .calendar-section {
-    border-right: none;
-    border-bottom: 1px solid #e0e0e0;
     overflow-y: visible;
   }
 
@@ -308,14 +423,26 @@
 
 /* Mobile phones */
 @media (max-width: 600px) {
-  /* Smaller header */
+  /* Further reduce header padding */
   .dashboard-header {
-    padding: 0 16px;
-    height: 60px;
+    padding: 12px 20px;
   }
 
+  /* Keep stacked layout */
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* Smaller logo */
   .dashboard-title {
-    font-size: 20px;
+    font-size: 22px;
+  }
+
+  /* Smaller tagline */
+  .header-tagline {
+    font-size: 11px;
   }
 
   /* Reduce user info on mobile */
@@ -334,22 +461,26 @@
     font-size: 14px;
   }
 
-  /* Adjust content height for smaller header */
-  .dashboard-content {
-    height: calc(100vh - 60px);
+  /* Smaller logout button */
+  .logout-btn {
+    font-size: 14px;
+    padding: 8px 18px;
   }
 
-  /* Reduce padding on mobile */
+  /* Reduce content padding */
+  .dashboard-content {
+    padding: 20px;
+    gap: 20px;
+  }
+
+  /* Reduce section padding on mobile */
   .calendar-section,
   .chat-section {
-    padding: 16px 0;
+    padding: 24px 18px;
   }
 
+  /* Reduce section title size */
   .section-title {
-    padding: 0 12px;
-  }
-
-  .chat-history {
-    padding: 0 12px;
+    font-size: 17px;
   }
 }
