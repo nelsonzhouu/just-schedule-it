@@ -1,6 +1,6 @@
 # just-schedule-it
 Manage your Google Calendar using natural language commands.
-Type what you want — "move my 3pm meeting to tomorrow" or 
+Type what you want — "move my 3pm meeting to tomorrow" or
 "cancel all my Friday events" — and it handles the rest.
 
 ## Tech Stack
@@ -11,7 +11,7 @@ Type what you want — "move my 3pm meeting to tomorrow" or
 - Auth: Google OAuth 2.0 + JWTs
 
 ## Status
-Currently in **Phase 3A Complete**: Backend authentication with Google OAuth 2.0, JWT sessions, and Supabase integration
+Currently in **Phase 3B Complete**: Full authentication flow with modern SaaS landing page, protected dashboard, and session-based chat interface
 
 ## Project Structure
 
@@ -29,10 +29,23 @@ just-schedule-it/
 │
 ├── frontend/                     # React + Vite frontend
 │   ├── src/
-│   │   ├── App.jsx               # Main React component
-│   │   ├── App.css               # Styling
-│   │   └── main.jsx              # React entry point
-│   ├── index.html                # HTML template
+│   │   ├── utils/
+│   │   │   ├── api.js            # Axios instance with cookie support
+│   │   │   └── auth.js           # Authentication helper functions
+│   │   ├── pages/
+│   │   │   ├── HomePage.jsx      # Landing page with login
+│   │   │   ├── HomePage.css
+│   │   │   ├── Dashboard.jsx     # Main app page (protected)
+│   │   │   └── Dashboard.css
+│   │   ├── components/
+│   │   │   ├── MessageInput.jsx  # Command input component
+│   │   │   ├── MessageInput.css
+│   │   │   ├── ChatMessage.jsx   # Chat message display
+│   │   │   └── ChatMessage.css
+│   │   ├── App.jsx               # Routing and protected routes
+│   │   ├── App.css               # Global styles
+│   │   └── main.jsx              # React entry point with BrowserRouter
+│   ├── index.html                # HTML template with Google Fonts
 │   ├── vite.config.js            # Vite configuration (includes proxy)
 │   ├── package.json              # Node.js dependencies
 │   └── .env.example              # Environment variables template
@@ -155,7 +168,6 @@ In a new terminal:
 ```bash
 cd frontend
 npm install
-cp .env.example .env
 npm run dev
 ```
 
@@ -163,54 +175,98 @@ Server starts on `http://localhost:5173`
 
 ---
 
+## Running the Application Locally
+
+### Starting Both Servers
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+python app.py
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+Then visit `http://localhost:5173` in your browser.
+
+---
+
 ## Testing the Application
 
-### 1. Test OAuth Login Flow
+### 1. Test the Landing Page
 
-1. Make sure both backend and frontend are running
-2. Visit: `http://localhost:5000/api/auth/login`
-3. Sign in with your Google account
-4. Grant calendar permissions
-5. You'll be redirected to `http://localhost:5173/dashboard`
-6. Check browser cookies (DevTools → Application → Cookies):
+1. Visit `http://localhost:5173`
+2. You should see:
+   - Modern SaaS landing page with "JustScheduleIt" logo
+   - Elegant serif headline: "Manage your calendar with natural language"
+   - Tagline: "AI-powered calendar assistant"
+   - "Get Started" button in the hero section
+   - "Login with Google" ghost button in header
+   - Three feature cards showcasing functionality
+3. Click either login button to start OAuth flow
+
+### 2. Test OAuth Login Flow
+
+1. Click "Login with Google" or "Get Started"
+2. Sign in with your Google account
+3. Grant calendar permissions
+4. You'll be redirected to `http://localhost:5173/dashboard`
+5. Check browser cookies (DevTools → Application → Cookies):
    - Should see `jwt_token` cookie set (httpOnly)
 
-### 2. Verify Database
+### 3. Test Dashboard
+
+After logging in, you should see:
+- Header with "JustScheduleIt" logo
+- Your profile picture (or initial fallback) and name
+- Logout button
+- Two-column layout:
+  - **Left**: Calendar placeholder (Phase 3C will add real calendar)
+  - **Right**: Chat interface with welcome message
+- Example commands you can try
+
+### 4. Test Chat Interface
+
+1. Type a calendar command in the input box:
+   - "schedule a meeting with John tomorrow at 3pm"
+   - "cancel my dentist appointment Friday"
+   - "move my 2pm meeting to Thursday at 4pm"
+   - "what do I have on Friday?"
+2. Click Send (or press Enter)
+3. You should see:
+   - Your message in a blue bubble (right-aligned)
+   - Parsed response in a gray bubble (left-aligned) showing:
+     - Action type
+     - Title
+     - Date/time information
+     - Confidence score
+   - Note: Commands are parsed but not executed yet (Phase 3C)
+4. Chat history persists during the session but clears on refresh
+
+### 5. Test Protected Routes
+
+1. Open a new incognito/private browser window
+2. Try to visit `http://localhost:5173/dashboard` directly
+3. You should be redirected to `/` (homepage) since you're not logged in
+4. This confirms protected routes are working correctly
+
+### 6. Verify Database
 
 In Supabase → Table Editor:
 - **users** table: Should have your Google profile
 - **refresh_tokens** table: Should have encrypted token (looks like gibberish)
 
-### 3. Test Protected Endpoint
+### 7. Test Logout
 
-After logging in, visit: `http://localhost:5000/api/auth/user`
-
-Should return your user info:
-```json
-{
-  "success": true,
-  "user": {
-    "id": "...",
-    "email": "your@email.com",
-    "name": "Your Name",
-    "picture": "https://..."
-  }
-}
-```
-
-### 4. Test Natural Language Parsing
-
-1. Visit `http://localhost:5173`
-2. Type a calendar command:
-   - "schedule a meeting with John tomorrow at 3pm"
-   - "cancel my dentist appointment Friday"
-   - "move my 2pm meeting to Thursday at 4pm"
-   - "what do I have on Friday?"
-3. Groq API parses and returns structured JSON:
-   - Action type (create/delete/move/list)
-   - Event title
-   - Date and time information
-   - Confidence score
+1. Click the "Logout" button in the dashboard header
+2. You should be redirected to the homepage
+3. JWT cookie is cleared
+4. Trying to access `/dashboard` should redirect to `/`
 
 ---
 
@@ -219,22 +275,48 @@ Should return your user info:
 ### ✅ Working Features
 
 **Authentication & Security:**
-- Google OAuth 2.0 login
+- Google OAuth 2.0 login flow
 - JWT sessions with httpOnly cookies (XSS-safe)
 - Refresh tokens encrypted with Fernet before storage
-- Protected API endpoints
+- Protected API endpoints and routes
 - User profile management
+- Automatic user creation on first login
+- Secure logout functionality
+
+**Frontend UI (Phase 3B):**
+- Modern SaaS-style landing page with:
+  - Playfair Display serif font for elegant branding
+  - Warm cream (#FAF8F5) background for depth
+  - Ghost-style outlined login button
+  - Solid pill-shaped "Get Started" CTA button
+  - Three feature cards showcasing key functionality
+  - Fully responsive design
+- Protected dashboard with:
+  - User profile display with fallback initials
+  - Header with logout functionality
+  - Two-column layout (calendar + chat)
+  - Calendar placeholder (Phase 3C will add real calendar)
+- Chat interface with:
+  - Message input component
+  - Chat message bubbles (user + response)
+  - Session-based history (clears on refresh)
+  - Parsed command display with confidence scores
+- React Router for navigation
+- Protected routes with authentication checks
+- Cookie-based auth with automatic credential handling
 
 **Natural Language Processing:**
 - Parse calendar commands with Groq API (Llama 3.1 8B Instant)
 - Support for 4 actions: create, delete, move, list
 - Intelligent date/time parsing (relative dates like "tomorrow", "Friday")
 - Confidence scoring for parsed commands
+- Real-time command parsing and display
 
 **Database:**
 - User profiles stored in Supabase
 - Encrypted refresh token storage
 - Automatic user creation on first login
+- Secure database operations with service role key
 
 **API Endpoints:**
 - `GET /api/health` - Health check
@@ -244,16 +326,17 @@ Should return your user info:
 - `POST /api/auth/logout` - Logout user (protected)
 - `POST /api/message` - Parse natural language command (protected)
 
-### 🚧 In Progress
+### 🚧 Next Up (Phase 3C)
 
-**Phase 3B - Frontend UI:**
-- Login page with "Login with Google" button
-- Dashboard with embedded Google Calendar
-- Chat interface for command history (session-only, not persisted)
-
-**Phase 3C - Google Calendar API:**
-- Execute parsed commands on actual Google Calendar
-- Create, delete, move, and list calendar events
+**Google Calendar Integration:**
+- Connect to Google Calendar API
+- Execute parsed commands on actual calendar:
+  - Create events
+  - Delete events
+  - Move/reschedule events
+  - List events
+- Display real calendar in dashboard
+- Sync calendar events with backend
 
 ---
 
@@ -266,6 +349,8 @@ Should return your user info:
 - ✅ **Input validation** - All endpoints validate input
 - ✅ **Parameterized queries** - Supabase SDK prevents SQL injection
 - ✅ **Service role key** - Backend uses admin key, never exposed to frontend
+- ✅ **Protected routes** - Authentication required for dashboard access
+- ✅ **Profile picture fallback** - Colored circle with user initials if image fails
 
 ---
 
@@ -290,28 +375,34 @@ Should return your user info:
 - [x] Protected API endpoints
 - [x] User authentication and profile storage
 
-### Phase 3B (Next)
-- [ ] Add React Router for page navigation
-- [ ] Create HomePage with "Login with Google" button
-- [ ] Create Dashboard page structure
-- [ ] Implement auth state management in React
-- [ ] Configure axios for cookie-based auth
+### Phase 3B ✅ Complete
+- [x] Add React Router for page navigation
+- [x] Create modern SaaS landing page with:
+  - [x] Elegant serif logo (Playfair Display)
+  - [x] Hero section with CTA button
+  - [x] Feature cards
+  - [x] Ghost-style login button
+- [x] Create Dashboard page with:
+  - [x] User profile header with logout
+  - [x] Two-column layout (calendar + chat)
+  - [x] Profile picture fallback (colored circle with initial)
+- [x] Implement protected routes
+- [x] Configure axios for cookie-based auth
+- [x] Build chat interface with:
+  - [x] Message input component
+  - [x] Chat message display
+  - [x] Session-based history (React state)
+- [x] Responsive design for mobile/tablet
 
-### Phase 3C
+### Phase 3C (Next)
 - [ ] Integrate Google Calendar API
 - [ ] Implement calendar operations:
   - [ ] Create events
   - [ ] Delete events
   - [ ] Move/reschedule events
   - [ ] List events
-- [ ] Display custom calendar view with `react-big-calendar`
-- [ ] Fetch and render user's actual calendar events
-
-### Phase 3D
-- [ ] Build chat interface component
-- [ ] Implement session-based chat history (React state only)
-- [ ] Display command history in dashboard
-- [ ] Polish UI/UX
+- [ ] Display real calendar in dashboard
+- [ ] Execute parsed commands on actual Google Calendar
 
 ### Phase 4
 - [ ] Deploy backend to Render
@@ -327,8 +418,10 @@ Should return your user info:
 
 **Frontend:**
 - React 18 with Vite
-- Axios for HTTP requests
-- React Router (Phase 3B)
+- React Router v6 for navigation
+- Axios for HTTP requests with cookie support
+- Google Fonts (Playfair Display)
+- CSS3 with responsive design
 - react-big-calendar (Phase 3C)
 
 **Backend:**
@@ -337,6 +430,7 @@ Should return your user info:
 - Google OAuth 2.0
 - PyJWT for session tokens
 - Cryptography (Fernet) for token encryption
+- Python-dotenv for environment variables
 
 **Database:**
 - Supabase (PostgreSQL)
@@ -345,6 +439,29 @@ Should return your user info:
 **Deployment:**
 - Frontend: Vercel
 - Backend: Render
+
+---
+
+## Design Philosophy
+
+**Security First:**
+- All sensitive tokens stored server-side and encrypted
+- httpOnly cookies prevent XSS attacks
+- Protected routes ensure authenticated access only
+- No secrets exposed to frontend
+
+**User Experience:**
+- Modern SaaS aesthetic with warm, inviting colors
+- Clean, minimal design
+- Responsive layout for all devices
+- Session-based chat for ephemeral interactions
+- Profile picture fallback for reliability
+
+**Developer Experience:**
+- Comprehensive code comments throughout
+- Modular component architecture
+- Clear separation of concerns
+- Environment-based configuration
 
 ---
 
