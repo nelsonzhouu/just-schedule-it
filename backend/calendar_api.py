@@ -857,18 +857,28 @@ def list_events(user_id: str, date_query: str = None, time_query: str = None):
         # Get authenticated Calendar API service
         service = get_calendar_service(user_id)
 
+        # Get user's timezone to build correct date range
+        user_timezone = get_user_timezone(user_id, service)
+        tz = pytz.timezone(user_timezone)
+
         # Determine time range
         if date_query:
-            # List events for specific day
+            # List events for specific day IN USER'S TIMEZONE
             start_dt, _ = parse_date_time(date_query)
             start_dt_obj = datetime.fromisoformat(start_dt)
-            time_min = start_dt_obj.replace(hour=0, minute=0, second=0).isoformat() + 'Z'
-            time_max = start_dt_obj.replace(hour=23, minute=59, second=59).isoformat() + 'Z'
+
+            # Create timezone-aware datetimes for start and end of day in user's timezone
+            day_start = tz.localize(start_dt_obj.replace(hour=0, minute=0, second=0))
+            day_end = tz.localize(start_dt_obj.replace(hour=23, minute=59, second=59))
+
+            # Convert to RFC3339 format for Google Calendar API
+            time_min = day_start.isoformat()
+            time_max = day_end.isoformat()
         else:
             # List next 7 days
-            now = datetime.now()
-            time_min = now.isoformat() + 'Z'
-            time_max = (now + timedelta(days=7)).isoformat() + 'Z'
+            now = datetime.now(tz)
+            time_min = now.isoformat()
+            time_max = (now + timedelta(days=7)).isoformat()
 
         # Fetch events
         events_result = service.events().list(
