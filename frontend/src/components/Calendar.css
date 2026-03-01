@@ -1,0 +1,601 @@
+/**
+ * Calendar Component Styles
+ *
+ * Styling for the Google Calendar integration using react-big-calendar.
+ *
+ * DESIGN:
+ * - Clean, modern look matching dashboard aesthetic
+ * - Custom colors for events and UI elements
+ * - Responsive layout
+ * - Overrides react-big-calendar default styles for consistency
+ *
+ * STRUCTURE:
+ * - Container: Full height to fill calendar section
+ * - Calendar: react-big-calendar overrides for custom styling
+ * - Events: Custom event styling matching design system
+ * - Loading/Error states: User feedback UI
+ */
+
+/* ==================== Container ==================== */
+
+/* Main calendar container - fills parent section */
+.calendar-container {
+  /* Take up full available space */
+  width: 100%;
+
+  /* Flex grow to fill available height in parent */
+  flex: 1;
+
+  /* Minimum height to prevent collapse */
+  min-height: 0;
+
+  /* Font styling */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+
+  /* Position relative for absolute positioning of children if needed */
+  position: relative;
+
+  /* Ensure toolbar has full width */
+  overflow: visible;
+}
+
+/* Loading state */
+.calendar-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #666;
+  font-size: 16px;
+}
+
+/* Error state */
+.calendar-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 40px;
+  text-align: center;
+}
+
+.calendar-error p {
+  color: #d32f2f;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.calendar-error button {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background-color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.calendar-error button:hover {
+  background-color: #333;
+}
+
+/* ==================== react-big-calendar Overrides ==================== */
+
+/* Calendar wrapper - ensure it takes full height */
+.rbc-calendar {
+  height: 100% !important;
+  width: 100% !important;
+
+  /* Use flexbox to properly size */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==================== Month View ==================== */
+
+/* Month view container */
+.rbc-month-view {
+  border: 1px solid #f0f0f0; /* Lighter border */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Header row (days of week: Sun, Mon, Tue...) */
+.rbc-month-header {
+  background-color: transparent; /* Remove background for cleaner look */
+}
+
+/* Individual header cells (each day name) in month view */
+.rbc-month-view .rbc-header {
+  padding: 12px 8px;
+  font-weight: 600;
+  font-size: 11px;
+  color: #999; /* More muted */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #f0f0f0; /* Lighter border */
+}
+
+/* Header cells in week/day view */
+.rbc-time-header .rbc-header {
+  padding: 12px 8px;
+}
+
+/* Month row (each week) */
+.rbc-month-row {
+  border-bottom: 1px solid #f5f5f5; /* Very light border */
+}
+
+/* Individual day cell */
+.rbc-day-bg {
+  border-left: 1px solid #f5f5f5; /* Very light border */
+}
+
+/* Today's date cell - subtle highlight */
+.rbc-today {
+  background-color: rgba(66, 133, 244, 0.02) !important; /* Very subtle blue tint */
+}
+
+/* Date number in month view */
+.rbc-date-cell {
+  padding: 6px;
+  text-align: right;
+}
+
+/* Date number text */
+.rbc-date-cell button {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 50px; /* Pill shape for consistency */
+  transition: all 0.2s ease;
+  min-width: 32px;
+}
+
+.rbc-date-cell button:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  color: #1a1a1a;
+}
+
+/* Current date number - filled pill */
+.rbc-now button {
+  font-weight: 600;
+  background-color: #1a1a1a;
+  color: white;
+}
+
+.rbc-now button:hover {
+  background-color: #333;
+}
+
+/* Dates outside current month (grayed out) */
+.rbc-off-range {
+  color: #ddd;
+}
+
+.rbc-off-range-bg {
+  background-color: transparent; /* Remove background for cleaner look */
+}
+
+.rbc-off-range button {
+  color: #ccc;
+}
+
+/* ==================== Week/Day View ==================== */
+
+/* Week and day view containers */
+.rbc-time-view {
+  border: 1px solid #f0f0f0; /* Lighter border */
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Header for week/day view */
+.rbc-time-header {
+  background-color: transparent; /* Remove background */
+  border-bottom: 1px solid #f0f0f0; /* Light separator */
+}
+
+/* Header cells */
+.rbc-time-header-content {
+  border-left: 1px solid #f5f5f5; /* Very light border */
+}
+
+/* Day name in header - applies to both month and week/day views */
+.rbc-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: #999; /* More muted */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: none;
+}
+
+/* Week view header has both day name and date */
+.rbc-header > a,
+.rbc-header > span {
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Today's header in week view */
+.rbc-header.rbc-today {
+  background-color: rgba(66, 133, 244, 0.03);
+}
+
+.rbc-header.rbc-today > a,
+.rbc-header.rbc-today > span {
+  color: #4285f4;
+  font-weight: 600;
+}
+
+/* Time gutter (left column showing hours) */
+.rbc-time-gutter {
+  background-color: transparent; /* Remove background for cleaner look */
+}
+
+/* Time slot labels (8 AM, 9 AM, etc.) */
+.rbc-time-slot {
+  border-top: 1px solid #f8f8f8; /* Very light grid lines */
+  min-height: 40px;
+}
+
+.rbc-label {
+  padding: 8px 6px;
+  font-size: 11px; /* Smaller, more subtle */
+  font-weight: 500;
+  color: #aaa; /* More muted */
+}
+
+/* Time grid (where events are displayed) */
+.rbc-time-content {
+  border-top: none;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Time slot cells in the grid */
+.rbc-time-column {
+  border-left: 1px solid #f5f5f5; /* Very light border */
+}
+
+.rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid #f8f8f8; /* Very light grid lines */
+}
+
+/* Today column in week view - very subtle highlight */
+.rbc-today {
+  background-color: rgba(66, 133, 244, 0.015); /* Extremely subtle blue tint */
+}
+
+/* Current time indicator (red line) */
+.rbc-current-time-indicator {
+  background-color: #4285f4; /* Google blue instead of red */
+  height: 2px;
+  box-shadow: 0 0 4px rgba(66, 133, 244, 0.3); /* Subtle glow */
+}
+
+/* ==================== Events ==================== */
+
+/* Event container/wrapper */
+.rbc-event {
+  /* Dark background for events */
+  background-color: #1a1a1a;
+
+  /* White text */
+  color: white;
+
+  /* Padding inside event - slightly more for time range */
+  padding: 5px 8px;
+
+  /* Rounded corners */
+  border-radius: 4px;
+
+  /* No border */
+  border: none;
+
+  /* Smooth transitions */
+  transition: opacity 0.2s ease, transform 0.1s ease;
+
+  /* Text styling */
+  font-size: 13px;
+  font-weight: 500;
+
+  /* Cursor indicates clickable */
+  cursor: pointer;
+
+  /* Allow content to wrap for multi-line display */
+  overflow: hidden;
+}
+
+/* Event hover state - slightly transparent */
+.rbc-event:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+/* Selected event (clicked) */
+.rbc-event.rbc-selected {
+  background-color: #333;
+}
+
+/* Event title text */
+.rbc-event-label {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.rbc-event-content {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* "Show more" link in month view */
+.rbc-show-more {
+  background-color: transparent;
+  color: #4285f4;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  margin: 2px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.rbc-show-more:hover {
+  background-color: rgba(66, 133, 244, 0.08);
+  color: #1967d2;
+}
+
+/* ==================== Agenda View ==================== */
+
+/* Agenda view table */
+.rbc-agenda-view {
+  border: 1px solid #f0f0f0; /* Lighter border */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Agenda view table */
+.rbc-agenda-view table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Agenda table headers */
+.rbc-agenda-view thead > tr > th {
+  padding: 12px 16px;
+  background-color: transparent; /* Remove background */
+  font-weight: 600;
+  font-size: 11px;
+  color: #999; /* More muted */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #f0f0f0; /* Lighter border */
+  text-align: left;
+}
+
+/* Agenda table rows */
+.rbc-agenda-view tbody > tr > td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f8f8f8; /* Very light border */
+}
+
+.rbc-agenda-view tbody > tr:hover {
+  background-color: rgba(0, 0, 0, 0.01); /* Subtle hover effect */
+}
+
+/* Date column in agenda */
+.rbc-agenda-date-cell {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+/* Time column in agenda */
+.rbc-agenda-time-cell {
+  color: #999; /* More muted */
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Event column in agenda */
+.rbc-agenda-event-cell {
+  color: #555;
+  font-weight: 500;
+}
+
+/* Empty message when no events */
+.rbc-agenda-empty {
+  padding: 60px 40px;
+  text-align: center;
+  color: #aaa; /* More muted */
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* ==================== Popup (Show More Events) ==================== */
+
+/* Popup overlay when clicking "show more" in month view */
+.rbc-overlay {
+  background-color: white;
+  border: 1px solid #f0f0f0; /* Lighter border */
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Softer shadow */
+  padding: 14px;
+  max-width: 300px;
+}
+
+/* Event list in popup */
+.rbc-overlay-header {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0; /* Lighter border */
+  color: #1a1a1a;
+}
+
+/* ==================== Responsive Design ==================== */
+
+/* Tablet and smaller */
+@media (max-width: 968px) {
+  /* Header cells */
+  .rbc-header {
+    padding: 8px 4px;
+    font-size: 10px;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 600px) {
+  .calendar-container {
+    font-size: 12px;
+  }
+
+  /* Header cells on mobile */
+  .rbc-header {
+    padding: 8px 4px;
+    font-size: 10px;
+  }
+
+  /* Smaller event text on mobile */
+  .rbc-event {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+
+  /* Smaller time slots in week/day view */
+  .rbc-time-slot {
+    min-height: 30px;
+  }
+
+  .rbc-label {
+    font-size: 10px;
+  }
+
+  /* Smaller date cells */
+  .rbc-date-cell button {
+    font-size: 12px;
+    padding: 4px 8px;
+    min-width: 28px;
+  }
+
+  /* Event popup adjustments for mobile */
+  .event-popup {
+    min-width: 280px;
+    padding: 20px;
+  }
+
+  .event-popup-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .event-popup-detail {
+    font-size: 14px;
+  }
+}
+
+/* ==================== Event Details Popup ==================== */
+
+/* Overlay that covers the entire screen */
+.event-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Popup container */
+.event-popup {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 24px;
+  min-width: 320px;
+  max-width: 400px;
+  width: 90%; /* Responsive width */
+  position: relative;
+}
+
+/* Close button */
+.event-popup-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.event-popup-close:hover {
+  background-color: #f5f5f5;
+  color: #1a1a1a;
+}
+
+/* Popup content */
+.event-popup-content {
+  padding-right: 20px; /* Space for close button */
+}
+
+/* Event title */
+.event-popup-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 20px 0;
+  line-height: 1.3;
+}
+
+/* Detail row container */
+.event-popup-detail {
+  display: flex;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.event-popup-detail:last-child {
+  margin-bottom: 0;
+}
+
+/* Label (Date:, Time:) */
+.event-popup-label {
+  font-weight: 600;
+  color: #666;
+  min-width: 60px;
+  margin-right: 12px;
+}
+
+/* Value */
+.event-popup-value {
+  color: #1a1a1a;
+}
+

@@ -14,16 +14,18 @@ Endpoints:
 - /api/auth/callback - Handle OAuth callback and issue JWT
 - /api/auth/user - Get current user info (protected)
 - /api/auth/logout - Logout user (protected)
-- /api/message - Parse calendar command with AI (protected)
+- /api/message - Parse and execute calendar commands with AI (protected)
+- /api/calendar/events - Fetch calendar events for date range (protected)
 - /api/health - Health check
 """
 
-from flask import Flask, request, jsonify, g, make_response, redirect
+from flask import Flask, request, jsonify, g, make_response, redirect, session
 from flask_cors import CORS
 from config import Config
 from groq import Groq
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
+import re
 
 # Import authentication functions
 # These handle Google OAuth flow and JWT session management
@@ -32,7 +34,8 @@ from auth import (
     exchange_code_for_tokens,    # Exchange OAuth code for access/refresh tokens
     get_google_user_info,        # Get user profile from Google
     create_jwt,                  # Create JWT for session management
-    require_auth                 # Decorator to protect routes
+    require_auth,                # Decorator to protect routes
+    refresh_access_token         # Get fresh access token from refresh token
 )
 
 # Import database functions
@@ -41,7 +44,19 @@ from database import (
     get_user_by_google_id,  # Find user by their Google ID
     get_user_by_id,         # Find user by our internal UUID
     create_user,            # Create new user record
-    store_refresh_token     # Store encrypted refresh token
+    store_refresh_token,    # Store encrypted refresh token
+    get_refresh_token       # Retrieve encrypted refresh token for API calls
+)
+
+# Import Google Calendar API functions
+# These handle calendar operations: create, delete, move, and list events
+from calendar_api import (
+    create_event,    # Create new calendar event
+    delete_event,    # Delete calendar event (with multiple match handling)
+    move_event,      # Move/reschedule calendar event (with multiple match handling)
+    list_events,     # List events for specific date
+    get_all_events,  # Get all events in a date range (for calendar view)
+    parse_date_time  # Parse natural language dates to ISO format
 )
 
 # Initialize Flask application
@@ -49,6 +64,10 @@ app = Flask(__name__)
 
 # Load configuration from Config class (which loads from .env)
 app.config.from_object(Config)
+
+# Set secret key for Flask session management (used for pending action confirmations)
+# Use the JWT secret since both require secure random keys
+app.secret_key = Config.JWT_SECRET
 
 # Enable CORS (Cross-Origin Resource Sharing) for frontend requests
 # origins: Which domains can make requests to this API
@@ -59,6 +78,247 @@ CORS(app, origins=Config.CORS_ORIGINS, supports_credentials=True)
 # Initialize Groq AI client for natural language processing
 # Used to parse calendar commands like "schedule meeting tomorrow at 3pm"
 groq_client = Groq(api_key=Config.GROQ_API_KEY)
+
+
+# ==================== Helper Functions for Conversational Responses ====================
+
+def format_date_conversational(date_str):
+    """
+    Format a date string conversationally.
+
+    Converts "2026-03-01", "tomorrow", or "friday" to "March 1st, 2026"
+
+    Args:
+        date_str: Date string in ISO format or natural language
+
+    Returns:
+        str: Formatted date like "March 1st, 2026"
+    """
+    try:
+        # If it's already a datetime object
+        if isinstance(date_str, datetime):
+            dt = date_str
+        # If it's an ISO datetime string with T
+        elif 'T' in str(date_str):
+            dt = datetime.fromisoformat(str(date_str).replace('Z', '+00:00'))
+        else:
+            # Try to parse as ISO date first
+            try:
+                dt = datetime.fromisoformat(str(date_str))
+            except:
+                # If that fails, it might be natural language like "tomorrow", "friday"
+                # Use parse_date_time to convert it to ISO format
+                parsed_start, _ = parse_date_time(str(date_str))
+                dt = datetime.fromisoformat(parsed_start)
+
+        # Get the day with ordinal suffix (1st, 2nd, 3rd, etc.)
+        day = dt.day
+        if 10 <= day % 100 <= 20:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+
+        # Format as "March 1st, 2026"
+        return dt.strftime(f'%B {day}{suffix}, %Y')
+    except:
+        return str(date_str)
+
+
+def format_time_conversational(time_str):
+    """
+    Format a time string conversationally.
+
+    Converts "15:00", "3pm", or ISO datetime to "3:00 PM"
+
+    Args:
+        time_str: Time string in various formats
+
+    Returns:
+        str: Formatted time like "3:00 PM"
+    """
+    try:
+        # If it's a full ISO datetime string
+        if 'T' in str(time_str):
+            dt = datetime.fromisoformat(str(time_str).replace('Z', '+00:00'))
+        else:
+            # Check if it's already in conversational format (e.g., "3pm", "3:30pm")
+            time_lower = str(time_str).lower().strip()
+            if 'am' in time_lower or 'pm' in time_lower:
+                # Parse formats like "3pm", "3:30pm", "3 pm", "3:30 pm"
+                time_match = re.match(r'(\d{1,2})(?::(\d{2}))?\s*(am|pm)', time_lower)
+                if time_match:
+                    hour = int(time_match.group(1))
+                    minute = int(time_match.group(2) or 0)
+                    am_pm = time_match.group(3).upper()
+
+                    # Return formatted string
+                    return f"{hour}:{minute:02d} {am_pm}"
+
+            # Try parsing as HH:MM format
+            dt = datetime.strptime(str(time_str), '%H:%M')
+
+        # Format as "3:00 PM" (remove leading zero from hour)
+        try:
+            return dt.strftime('%-I:%M %p')
+        except ValueError:
+            # Fallback for Windows
+            formatted = dt.strftime('%I:%M %p')
+            return formatted[1:] if formatted[0] == '0' else formatted
+    except:
+        return str(time_str)
+
+
+def generate_conversational_response(action, parsed_data, result):
+    """
+    Generate a friendly, conversational response based on the action and result.
+
+    Removes technical data and creates natural language responses.
+
+    Args:
+        action: The action type (create, delete, move, list)
+        parsed_data: The parsed command data
+        result: The execution result
+
+    Returns:
+        str: Friendly conversational message
+    """
+    # Handle errors
+    if not result.get('success', False):
+        message = result.get('message', 'Something went wrong')
+
+        # Check for multiple matches
+        if result.get('needs_confirmation') and result.get('multiple_matches'):
+            matches = result['multiple_matches']
+            response = "I found multiple matches - which one did you mean?\n\n"
+
+            for i, match in enumerate(matches, 1):
+                title = match.get('title', 'Untitled')
+                time_range = match.get('time', '')
+
+                if time_range:
+                    response += f"{i}. {title} ({time_range})\n"
+                else:
+                    # Parse the start time if time field not available
+                    start = match.get('start', '')
+                    if 'T' in start:
+                        time = format_time_conversational(start)
+                        response += f"{i}. {title} at {time}\n"
+                    else:
+                        response += f"{i}. {title}\n"
+
+            response += "\nType 1, 2, 3... to select, or type a new command to cancel."
+            return response.strip()
+
+        # Custom error message for no events found
+        if 'No events found' in message or 'No matching events found' in message:
+            time_str = parsed_data.get('time')
+            date_str = parsed_data.get('date')
+            title = parsed_data.get('title')
+
+            if time_str and date_str:
+                date_formatted = format_date_conversational(date_str)
+                time_formatted = format_time_conversational(time_str)
+
+                if title:
+                    return f"Sorry, I couldn't find '{title}' at {time_formatted} on {date_formatted}"
+                else:
+                    return f"You have nothing scheduled at {time_formatted} on {date_formatted}"
+            elif date_str:
+                date_formatted = format_date_conversational(date_str)
+                if title:
+                    return f"Sorry, I couldn't find '{title}' on {date_formatted}"
+                else:
+                    return f"You have nothing scheduled for {date_formatted}"
+            else:
+                return f"Sorry, I couldn't find any matching events"
+
+        # Generic error
+        return f"Sorry, {message}"
+
+    # Handle successful actions
+    if action == 'create':
+        # Get event info from result if available, otherwise use parsed data
+        event_info = result.get('event') or {}
+        title = event_info.get('title') or parsed_data.get('title', 'Event')
+
+        # Use the actual start time from the created event if available
+        start_time = event_info.get('start')
+        if start_time:
+            date_formatted = format_date_conversational(start_time)
+            time_formatted = format_time_conversational(start_time)
+        else:
+            # Fallback to parsed data
+            date_str = parsed_data.get('date')
+            time_str = parsed_data.get('time')
+            date_formatted = format_date_conversational(date_str) if date_str else 'today'
+            time_formatted = format_time_conversational(time_str) if time_str else '12:00 PM'
+
+        return f"✓ Done! '{title}' scheduled for {date_formatted} at {time_formatted}"
+
+    elif action == 'delete':
+        # Get the title from result or parsed_data
+        event_info = result.get('event') or {}
+        title = event_info.get('title') or parsed_data.get('title', 'Event')
+        date_str = parsed_data.get('date')
+
+        date_formatted = format_date_conversational(date_str) if date_str else ''
+
+        if date_formatted:
+            return f"✓ Done! '{title}' on {date_formatted} has been cancelled"
+        else:
+            return f"✓ Done! '{title}' has been cancelled"
+
+    elif action == 'move':
+        # Get the title from result or parsed_data
+        event_info = result.get('event') or {}
+        title = event_info.get('title') or parsed_data.get('title', 'Event')
+        new_date = parsed_data.get('new_date')
+        new_time = parsed_data.get('new_time')
+
+        date_formatted = format_date_conversational(new_date) if new_date else ''
+        time_formatted = format_time_conversational(new_time) if new_time else ''
+
+        if date_formatted and time_formatted:
+            return f"✓ Done! '{title}' moved to {date_formatted} at {time_formatted}"
+        elif date_formatted:
+            return f"✓ Done! '{title}' moved to {date_formatted}"
+        else:
+            return f"✓ Done! '{title}' has been rescheduled"
+
+    elif action == 'list':
+        events = result.get('events', [])
+        date_str = parsed_data.get('date')
+
+        if not events:
+            date_formatted = format_date_conversational(date_str) if date_str else 'that time'
+            return f"You have nothing scheduled for {date_formatted}"
+
+        # Format the header
+        date_formatted = format_date_conversational(date_str) if date_str else 'your schedule'
+        response = f"Here's what you have on {date_formatted}:\n\n"
+
+        # Add each event
+        for event in events:
+            title = event.get('title', 'Untitled')
+            time_range = event.get('time', '')
+
+            if time_range:
+                # Use the nicely formatted time range from backend
+                response += f"• {time_range} - {title}\n"
+            else:
+                # Fallback: parse start time if time field not available
+                start = event.get('start', '')
+                if 'T' in start:
+                    time = format_time_conversational(start)
+                    response += f"• {time} - {title}\n"
+                else:
+                    # All-day event
+                    response += f"• {title}\n"
+
+        return response.strip()
+
+    # Fallback
+    return result.get('message', 'Done!')
 
 
 # ==================== Authentication Endpoints ====================
@@ -323,8 +583,10 @@ def handle_message():
             "title": "event name",
             "date": "YYYY-MM-DD",
             "time": "HH:MM or null",
+            "end_time": "HH:MM or null",
             "new_date": "YYYY-MM-DD (move only) or null",
             "new_time": "HH:MM (move only) or null",
+            "new_end_time": "HH:MM (move only) or null",
             "confidence": 0.0 to 1.0
         }
     }
@@ -344,7 +606,82 @@ def handle_message():
                 'error': 'Message field is required'
             }), 400
 
-        user_message = data['message']
+        user_message = data['message'].strip()
+
+        # ==================== CONFIRMATION FLOW ====================
+        # Check if there's a pending action waiting for user confirmation
+        # This happens when multiple events matched the previous command
+        pending_action = session.get('pending_action')
+
+        if pending_action:
+            # User has a pending action - check if they're confirming a selection
+            # Look for patterns like: "1", "2", "option 1", "the first one", etc.
+            selection_match = re.match(r'^(?:option\s+)?(\d)(?:st|nd|rd|th)?$', user_message.lower())
+            number_match = re.search(r'\b([1-9])\b', user_message)
+
+            # Check if message looks like a selection
+            if selection_match or (number_match and len(user_message) < 20):
+                # Extract the selection number
+                if selection_match:
+                    selection = int(selection_match.group(1))
+                else:
+                    selection = int(number_match.group(1))
+
+                # Validate selection is within range
+                matches = pending_action.get('matches', [])
+                if 1 <= selection <= len(matches):
+                    # User made a valid selection - execute the pending action
+                    selected_event = matches[selection - 1]
+                    action = pending_action.get('action')
+                    parsed_data = pending_action.get('parsed_data')
+
+                    # Clear the pending action from session
+                    session.pop('pending_action', None)
+
+                    # Execute the action with the selected event ID
+                    execution_result = None
+                    try:
+                        if action == 'delete':
+                            execution_result = delete_event(user_id, {'event_id': selected_event['id']})
+
+                        elif action == 'move':
+                            execution_result = move_event(
+                                user_id,
+                                {'event_id': selected_event['id']},
+                                parsed_data.get('new_date'),
+                                parsed_data.get('new_time'),
+                                parsed_data.get('new_end_time')
+                            )
+
+                        # Generate conversational response
+                        conversational_message = generate_conversational_response(
+                            action,
+                            parsed_data,
+                            execution_result
+                        )
+
+                        return jsonify({
+                            'success': True,
+                            'message': conversational_message,
+                            'result': execution_result
+                        }), 200
+
+                    except Exception as e:
+                        print(f"Error executing confirmed action: {str(e)}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'Failed to execute action: {str(e)}'
+                        }), 500
+                else:
+                    # Invalid selection number
+                    return jsonify({
+                        'success': False,
+                        'message': f'Invalid selection. Please choose a number between 1 and {len(matches)}.'
+                    }), 400
+            else:
+                # User sent a new command instead of confirming - cancel pending action
+                session.pop('pending_action', None)
+                # Continue processing the new message as a fresh command below
 
         # Verify that the Groq API key is configured
         # Without this, we can't make AI requests
@@ -359,8 +696,23 @@ def handle_message():
         # - "tomorrow" (today + 1 day)
         # - "next Friday" (calculate from today)
         # - "in 3 days" (today + 3 days)
-        today = datetime.now().strftime('%Y-%m-%d')       # Format: 2024-01-15
-        day_of_week = datetime.now().strftime('%A')      # Format: Monday
+        now = datetime.now()
+        today = now.strftime('%Y-%m-%d')                # Format: 2026-02-28
+        day_of_week = now.strftime('%A')                 # Format: Saturday
+        current_year = now.year                          # Format: 2026
+
+        # Calculate example dates for the prompt
+        tomorrow = (now + timedelta(days=1)).strftime('%Y-%m-%d')
+        # Find next Friday
+        days_until_friday = (4 - now.weekday()) % 7  # 4 = Friday
+        if days_until_friday == 0:
+            days_until_friday = 7  # If today is Friday, get next Friday
+        next_friday = (now + timedelta(days=days_until_friday)).strftime('%Y-%m-%d')
+        # Find next Thursday
+        days_until_thursday = (3 - now.weekday()) % 7  # 3 = Thursday
+        if days_until_thursday == 0:
+            days_until_thursday = 7  # If today is Thursday, get next Thursday
+        next_thursday = (now + timedelta(days=days_until_thursday)).strftime('%Y-%m-%d')
 
         # Construct the system prompt for the AI model
         # This prompt is CRITICAL - it defines:
@@ -369,7 +721,7 @@ def handle_message():
         # 3. What actions are supported (create/delete/move/list)
         # 4. The exact JSON schema to return
         # 5. Examples of correct parsing
-        system_prompt = f"""You are a calendar command parser. Today is {day_of_week}, {today}.
+        system_prompt = f"""You are a calendar command parser. Today is {day_of_week}, {today}. The current year is {current_year}.
 
 Your task is to parse natural language calendar commands into structured JSON. You must ONLY return valid JSON with no markdown, no code blocks, no explanations.
 
@@ -385,33 +737,50 @@ Required JSON structure:
   "title": "event name or description",
   "date": "YYYY-MM-DD format",
   "time": "HH:MM in 24-hour format, or null if not specified",
+  "end_time": "HH:MM in 24-hour format, or null if not specified",
   "new_date": "YYYY-MM-DD format for move action, or null otherwise",
   "new_time": "HH:MM in 24-hour format for move action, or null if not specified",
+  "new_end_time": "HH:MM in 24-hour format for move action, or null if not specified",
   "confidence": 0.0 to 1.0 (how confident you are in parsing this command)
 }}
 
 Rules:
-1. Convert relative dates (tomorrow, next Friday, etc.) to YYYY-MM-DD format based on today's date
-2. Convert 12-hour time to 24-hour format (3pm → 15:00)
-3. If time is not mentioned, set time to null
-4. For move actions, extract both original date/time and new date/time
-5. For list actions, determine the date range they're asking about
-6. Set confidence lower if the command is ambiguous
-7. Extract event titles/descriptions from context
-8. Return ONLY the JSON object, no other text
+1. Convert relative dates (tomorrow, next Friday, etc.) to YYYY-MM-DD format based on today's date ({today})
+2. IMPORTANT: When no year is specified, always use the current year ({current_year}), NOT previous years
+3. Convert 12-hour time to 24-hour format (3pm → 15:00)
+4. If time is not mentioned, set time to null
+5. Parse end times and durations:
+   - Explicit end time: "from 1pm to 3pm" → time: "13:00", end_time: "15:00"
+   - Duration in hours: "2 hour meeting at 3pm" → time: "15:00", end_time: "17:00"
+   - Duration in minutes: "30 minute call at 2pm" → time: "14:00", end_time: "14:30"
+   - No duration specified → end_time: null (defaults to 1 hour)
+6. For move actions, extract both original date/time/end_time and new date/time/end_time
+7. For list actions, determine the date range they're asking about
+8. Set confidence lower if the command is ambiguous
+9. Extract event titles/descriptions from context
+10. Return ONLY the JSON object, no other text
 
 Examples:
 Input: "schedule a meeting with John tomorrow at 3pm"
-Output: {{"action": "create", "title": "meeting with John", "date": "2024-01-15", "time": "15:00", "new_date": null, "new_time": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "meeting with John", "date": "{tomorrow}", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.95}}
+
+Input: "book a conference room from 1pm to 3pm tomorrow"
+Output: {{"action": "create", "title": "conference room", "date": "{tomorrow}", "time": "13:00", "end_time": "15:00", "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.95}}
+
+Input: "schedule a 2 hour meeting at 3pm Friday"
+Output: {{"action": "create", "title": "meeting", "date": "{next_friday}", "time": "15:00", "end_time": "17:00", "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.90}}
+
+Input: "30 minute call with Sarah at 2pm tomorrow"
+Output: {{"action": "create", "title": "call with Sarah", "date": "{tomorrow}", "time": "14:00", "end_time": "14:30", "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.95}}
 
 Input: "cancel my dentist appointment Friday"
-Output: {{"action": "delete", "title": "dentist appointment", "date": "2024-01-19", "time": null, "new_date": null, "new_time": null, "confidence": 0.85}}
+Output: {{"action": "delete", "title": "dentist appointment", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.85}}
 
 Input: "move my 2pm meeting to Thursday at 4pm"
-Output: {{"action": "move", "title": "2pm meeting", "date": "{today}", "time": "14:00", "new_date": "2024-01-18", "new_time": "16:00", "confidence": 0.90}}
+Output: {{"action": "move", "title": "2pm meeting", "date": "{today}", "time": "14:00", "end_time": null, "new_date": "{next_thursday}", "new_time": "16:00", "new_end_time": null, "confidence": 0.90}}
 
 Input: "what do I have on Friday?"
-Output: {{"action": "list", "title": "events", "date": "2024-01-19", "time": null, "new_date": null, "new_time": null, "confidence": 0.95}}"""
+Output: {{"action": "list", "title": "events", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.95}}"""
 
         # Call the Groq API to parse the natural language command
         # We use Llama 3.1 8B Instant - it's fast and accurate for structured tasks
@@ -441,21 +810,90 @@ Output: {{"action": "list", "title": "events", "date": "2024-01-19", "time": nul
         # Parse the JSON string into a Python dictionary
         parsed_data = json.loads(response_content)
 
-        # TODO Phase 3C: Execute the parsed command on Google Calendar
-        # We'll:
-        # 1. Get the user's encrypted refresh token from the database
-        # 2. Use it to get a fresh access token
-        # 3. Call the Google Calendar API to create/delete/move the event
-        # 4. Return the result to the user
-        #
-        # refresh_token = get_refresh_token(user_id)
-        # action_result = execute_calendar_action(refresh_token, parsed_data)
+        # PHASE 3C: Execute the parsed command on Google Calendar
+        # Now that we've parsed the user's intent, we execute the actual calendar operation
+        execution_result = None
 
-        # Return the parsed command structure to the frontend
-        # Frontend can display what we understood from their command
+        try:
+            # Extract the action type from parsed data
+            action = parsed_data.get('action')
+
+            # Execute the appropriate calendar operation based on the action type
+            if action == 'create':
+                # Create a new calendar event
+                # Event data includes: title, date, time (from parsed_data)
+                execution_result = create_event(user_id, parsed_data)
+
+            elif action == 'delete':
+                # Delete a calendar event
+                # IMPORTANT: If multiple events match, this returns a list for user confirmation
+                # The frontend should show the list and let user choose which one to delete
+                execution_result = delete_event(user_id, parsed_data)
+
+            elif action == 'move':
+                # Move/reschedule a calendar event
+                # IMPORTANT: If multiple events match, this returns a list for user confirmation
+                # The frontend should show the list and let user choose which one to move
+                execution_result = move_event(
+                    user_id,
+                    parsed_data,
+                    parsed_data.get('new_date'),
+                    parsed_data.get('new_time'),
+                    parsed_data.get('new_end_time')
+                )
+
+            elif action == 'list':
+                # List events for a specific date or date range
+                # Extract date and time from parsed_data
+                execution_result = list_events(
+                    user_id,
+                    parsed_data.get('date'),
+                    parsed_data.get('time')
+                )
+
+            else:
+                # Unknown action type - this shouldn't happen if Groq is working correctly
+                execution_result = {
+                    'success': False,
+                    'message': f'Unknown action: {action}'
+                }
+
+        except Exception as e:
+            # If calendar operation fails, return error but keep parsed data
+            # This allows frontend to show what we understood even if execution failed
+            print(f"Error executing calendar action: {str(e)}")
+            execution_result = {
+                'success': False,
+                'message': f'Failed to execute calendar action: {str(e)}'
+            }
+
+        # Generate a friendly, conversational response
+        conversational_message = generate_conversational_response(
+            action,
+            parsed_data,
+            execution_result
+        )
+
+        # ==================== STORE PENDING ACTION ====================
+        # If execution resulted in multiple matches, store pending action in session
+        if execution_result and execution_result.get('needs_confirmation') and execution_result.get('multiple_matches'):
+            # Store the action, parsed data, and matches for confirmation
+            session['pending_action'] = {
+                'action': action,
+                'parsed_data': parsed_data,
+                'matches': execution_result['multiple_matches']
+            }
+        else:
+            # Clear any pending action since this command was executed successfully
+            session.pop('pending_action', None)
+
+        # Return the conversational message and the execution result
+        # The conversational message is what gets displayed to the user
+        # The result data is available if the frontend needs it (e.g., for multiple matches)
         return jsonify({
             'success': True,
-            'data': parsed_data
+            'message': conversational_message,  # Friendly natural language response
+            'result': execution_result          # Raw result data (for multiple matches, etc.)
         }), 200
 
     except json.JSONDecodeError as e:
@@ -476,6 +914,77 @@ Output: {{"action": "list", "title": "events", "date": "2024-01-19", "time": nul
         return jsonify({
             'success': False,
             'error': 'An error occurred processing your message'
+        }), 500
+
+
+# ==================== Calendar Endpoints ====================
+
+@app.route('/api/calendar/events', methods=['GET'])
+@require_auth  # Protected route - user must be logged in
+def get_calendar_events():
+    """
+    Fetch calendar events for a specific date range.
+
+    This endpoint is used by the Calendar component to display events.
+    It retrieves events from the user's Google Calendar within the specified
+    time range and returns them in a format suitable for react-big-calendar.
+
+    Query parameters:
+    - start: ISO format datetime string (e.g., "2026-02-01T00:00:00")
+    - end: ISO format datetime string (e.g., "2026-02-28T23:59:59")
+
+    Returns:
+    {
+        "success": true,
+        "events": [
+            {
+                "id": "event_id_from_google",
+                "title": "Meeting with John",
+                "start": "2026-02-27T15:00:00",
+                "end": "2026-02-27T16:00:00",
+                "description": "Discuss project updates"
+            },
+            ...
+        ]
+    }
+
+    Error responses:
+    - 400: Missing start or end parameters
+    - 500: Failed to fetch events from Google Calendar
+    """
+    try:
+        # Get the authenticated user's ID from the JWT
+        user_id = g.user_id
+
+        # Get query parameters for the date range
+        # Frontend will pass these when calendar view changes (week/month/day)
+        time_min = request.args.get('start')
+        time_max = request.args.get('end')
+
+        # Validate that both parameters are provided
+        if not time_min or not time_max:
+            return jsonify({
+                'success': False,
+                'error': 'Both start and end parameters are required'
+            }), 400
+
+        # Fetch events from Google Calendar
+        # get_all_events returns a list of event objects with id, title, start, end
+        events = get_all_events(user_id, time_min, time_max)
+
+        # Return the events to the frontend
+        # The Calendar component will use these to render on the calendar view
+        return jsonify({
+            'success': True,
+            'events': events
+        }), 200
+
+    except Exception as e:
+        # If fetching events fails, log the error and return error response
+        print(f"Error fetching calendar events: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch calendar events'
         }), 500
 
 

@@ -2,18 +2,17 @@
  * ChatMessage Component
  *
  * Displays a single message exchange in the chat history.
- * Shows both the user's command and the parsed response from the backend.
+ * Shows the user's command and a conversational, friendly response.
  *
  * FEATURES:
- * - User message bubble (right-aligned, blue)
- * - Response bubble (left-aligned, gray or red for errors)
+ * - User message bubble (right-aligned, dark)
+ * - Response bubble showing conversational message
  * - Timestamp
- * - Formatted display of parsed command data
- * - Error handling for failed parses
+ * - Success/error styling
  *
  * PROPS:
  * - userMessage: The user's natural language command (string)
- * - response: The parsed data from Groq API (object)
+ * - response: Object with { message, result } from backend
  * - timestamp: When the message was sent (Date)
  * - isError: Whether this was an error response (boolean)
  */
@@ -55,90 +54,16 @@ function ChatMessage({ userMessage, response, timestamp, isError }) {
       </div>
 
       {/* ==================== Response Bubble ==================== */}
-      {/* Left-aligned bubble showing the parsed result */}
+      {/* Left-aligned bubble showing conversational response */}
       <div className="message-response">
         <div className={`message-bubble message-bubble-response ${isError ? 'message-bubble-error' : ''}`}>
-          {/* If error, show error message */}
-          {isError ? (
-            <div className="response-error">
-              <strong>Error:</strong>
-              <p>{response.error || 'An error occurred'}</p>
-            </div>
-          ) : (
-            /* Otherwise, show parsed command data */
-            <div className="response-data">
-              {/* Action type (create, delete, move, list) */}
-              {response.action && (
-                <div className="response-field">
-                  <span className="field-label">Action:</span>
-                  <span className="field-value action-badge">{response.action}</span>
-                </div>
-              )}
-
-              {/* Event title (if provided) */}
-              {response.title && (
-                <div className="response-field">
-                  <span className="field-label">Title:</span>
-                  <span className="field-value">{response.title}</span>
-                </div>
-              )}
-
-              {/* Date (if provided) */}
-              {response.date && (
-                <div className="response-field">
-                  <span className="field-label">Date:</span>
-                  <span className="field-value">{response.date}</span>
-                </div>
-              )}
-
-              {/* Time (if provided) */}
-              {response.time && (
-                <div className="response-field">
-                  <span className="field-label">Time:</span>
-                  <span className="field-value">{response.time}</span>
-                </div>
-              )}
-
-              {/* End time (for move operations with new time) */}
-              {response.end_time && (
-                <div className="response-field">
-                  <span className="field-label">End Time:</span>
-                  <span className="field-value">{response.end_time}</span>
-                </div>
-              )}
-
-              {/* New date (for move operations) */}
-              {response.new_date && (
-                <div className="response-field">
-                  <span className="field-label">New Date:</span>
-                  <span className="field-value">{response.new_date}</span>
-                </div>
-              )}
-
-              {/* New time (for move operations) */}
-              {response.new_time && (
-                <div className="response-field">
-                  <span className="field-label">New Time:</span>
-                  <span className="field-value">{response.new_time}</span>
-                </div>
-              )}
-
-              {/* Confidence score */}
-              {response.confidence && (
-                <div className="response-field">
-                  <span className="field-label">Confidence:</span>
-                  <span className="field-value confidence-score">
-                    {(response.confidence * 100).toFixed(0)}%
-                  </span>
-                </div>
-              )}
-
-              {/* Note about Phase 3C */}
-              <p className="response-note">
-                <em>Command parsed successfully! Execution coming in Phase 3C.</em>
-              </p>
-            </div>
-          )}
+          {/* Show the conversational message */}
+          <div className="response-message">
+            {/* Display the conversational message with line breaks preserved */}
+            <p style={{ whiteSpace: 'pre-line' }}>
+              {isError ? response.error : response.message}
+            </p>
+          </div>
 
           <span className="message-time">{formatTime(timestamp)}</span>
         </div>

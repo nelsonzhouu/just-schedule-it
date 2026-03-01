@@ -28,6 +28,7 @@ import { checkAuth, logout } from '../utils/auth'
 import api from '../utils/api'
 import MessageInput from '../components/MessageInput'
 import ChatMessage from '../components/ChatMessage'
+import Calendar from '../components/Calendar'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -49,6 +50,10 @@ function Dashboard() {
 
   // Track if profile picture failed to load (use fallback initial)
   const [imageError, setImageError] = useState(false)
+
+  // Ref to calendar refresh function (set by Calendar component via callback)
+  // This allows us to refresh the calendar after successful chat commands
+  const calendarRefreshRef = useRef(null)
 
   // ==================== Effects ====================
 
@@ -93,12 +98,13 @@ function Dashboard() {
    *
    * FLOW:
    * 1. MessageInput sends message to /api/message
-   * 2. Backend parses with Groq API
-   * 3. Response comes back with parsed data
+   * 2. Backend parses with Groq API AND executes on Google Calendar
+   * 3. Response comes back with parsed data AND execution result
    * 4. Add both user message and response to chat history
+   * 5. Refresh calendar if command was executed successfully
    *
    * @param {string} message - The user's natural language command
-   * @param {Object} response - The parsed response from backend
+   * @param {Object} response - The response from backend (includes parsed + result)
    * @param {boolean} isError - Whether this was an error response
    */
   const handleMessageSent = (message, response, isError = false) => {
@@ -113,6 +119,27 @@ function Dashboard() {
 
     // Add to chat history (immutable update pattern)
     setChatHistory(prev => [...prev, newMessage])
+
+    // If command was executed successfully and affected calendar, refresh it
+    // Check if result exists and was successful (create/delete/move actions)
+    if (response.result && response.result.success && !isError) {
+      // Refresh the calendar to show the updated events
+      if (calendarRefreshRef.current) {
+        calendarRefreshRef.current()
+      }
+    }
+  }
+
+  /**
+   * Callback to receive the calendar refresh function from Calendar component.
+   *
+   * The Calendar component will call this with its refresh function so we can
+   * trigger a refresh after successful chat commands.
+   *
+   * @param {Function} refreshFn - The calendar's refresh function
+   */
+  const handleCalendarRefresh = (refreshFn) => {
+    calendarRefreshRef.current = refreshFn
   }
 
   /**
@@ -188,14 +215,8 @@ function Dashboard() {
         <div className="calendar-section">
           <h2 className="section-title">Your Calendar</h2>
 
-          {/* Placeholder for now - Phase 3C will integrate Google Calendar */}
-          <div className="calendar-placeholder">
-            <p>📅 Calendar view coming in Phase 3C</p>
-            <p className="placeholder-note">
-              This will display your Google Calendar with events you can manage
-              using natural language commands.
-            </p>
-          </div>
+          {/* Google Calendar integration - displays and manages events */}
+          <Calendar onEventUpdate={handleCalendarRefresh} />
         </div>
 
         {/* Right Column: Chat Interface */}
@@ -215,7 +236,7 @@ function Dashboard() {
                   <li>"What do I have on Friday?"</li>
                 </ul>
                 <p className="note">
-                  Note: Commands are parsed but not executed yet (Phase 3C).
+                  Your calendar will update automatically when you create, edit, or delete events.
                   Chat history clears when you refresh the page.
                 </p>
               </div>

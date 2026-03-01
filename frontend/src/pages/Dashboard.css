@@ -21,8 +21,8 @@
 
 /* Full-height container with cream background matching homepage */
 .dashboard {
-  /* Take up full viewport height */
-  min-height: 100vh;
+  /* Take up exactly full viewport height - no scrolling */
+  height: 100vh;
 
   /* Flexbox column layout (header on top, content below) */
   display: flex;
@@ -30,6 +30,9 @@
 
   /* Cream background matching homepage hero section */
   background-color: #FAF8F5;
+
+  /* Prevent overflow on main container */
+  overflow: hidden;
 }
 
 /* Loading state centered on screen */
@@ -227,9 +230,11 @@
   /* Padding around content */
   padding: 30px 60px;
 
-  /* Prevent content from getting too tall */
-  max-height: calc(100vh - 52px); /* Full height minus header */
-  overflow: hidden; /* Children will handle scrolling */
+  /* Prevent overflow - children will handle their own scrolling */
+  overflow: hidden;
+
+  /* Minimum height to prevent collapse */
+  min-height: 0;
 }
 
 /* Section titles for calendar and chat - matching homepage card titles */
@@ -243,11 +248,14 @@
   /* Dark color */
   color: #1a1a1a;
 
-  /* Space below */
-  margin-bottom: 16px;
+  /* Space below - reduced for tighter spacing with calendar toolbar */
+  margin-bottom: 12px;
 
   /* Remove default top margin */
   margin-top: 0;
+
+  /* Don't allow title to grow */
+  flex-shrink: 0;
 }
 
 /* ==================== Calendar Section (Left Column) ==================== */
@@ -269,31 +277,15 @@
   /* Subtle shadow matching homepage cards */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-  /* Allow scrolling if calendar gets tall */
-  overflow-y: auto;
-}
+  /* Flexbox layout for title + calendar */
+  display: flex;
+  flex-direction: column;
 
-/* Calendar placeholder (Phase 3C will replace with real calendar) */
-.calendar-placeholder {
-  padding: 60px 40px;
-  background-color: #fafafa;
-  border: 2px dashed #ddd;
-  border-radius: 12px;
-  text-align: center;
-}
+  /* Prevent overflow on container */
+  overflow: hidden;
 
-.calendar-placeholder p {
-  font-size: 18px;
-  color: #666;
-  margin-bottom: 12px;
-}
-
-.placeholder-note {
-  font-size: 14px !important;
-  color: #999 !important;
-  max-width: 400px;
-  margin: 0 auto;
-  line-height: 1.5;
+  /* Minimum height to prevent collapse */
+  min-height: 0;
 }
 
 /* ==================== Chat Section (Right Column) ==================== */
@@ -319,8 +311,11 @@
   display: flex;
   flex-direction: column;
 
-  /* Prevent overflow */
+  /* Prevent overflow on container */
   overflow: hidden;
+
+  /* Minimum height to prevent collapse */
+  min-height: 0;
 }
 
 /* Chat history container (scrollable area) */
@@ -379,6 +374,13 @@
 
 /* Tablet and smaller - switch to single column */
 @media (max-width: 968px) {
+  /* Allow scrolling on smaller screens */
+  .dashboard {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
   /* Reduce header padding */
   .dashboard-header {
     padding: 12px 40px;
@@ -404,20 +406,22 @@
   /* Stack calendar and chat vertically */
   .dashboard-content {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr; /* Calendar auto height, chat fills rest */
+    grid-template-rows: auto auto; /* Both sections auto height */
     gap: 24px;
     padding: 24px 40px;
-    max-height: none;
+    overflow: visible;
   }
 
-  /* Calendar section adjustments */
+  /* Calendar section adjustments - fixed height */
   .calendar-section {
-    overflow-y: visible;
+    height: 600px;
+    min-height: 600px;
   }
 
-  /* Chat takes more space on stacked layout */
+  /* Chat takes remaining space on stacked layout */
   .chat-section {
-    min-height: 500px;
+    height: 600px;
+    min-height: 600px;
   }
 }
 
@@ -477,6 +481,8 @@
   .calendar-section,
   .chat-section {
     padding: 24px 18px;
+    height: 500px;
+    min-height: 500px;
   }
 
   /* Reduce section title size */

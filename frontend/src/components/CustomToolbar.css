@@ -1,0 +1,216 @@
+/**
+ * CustomToolbar Styles
+ *
+ * Styling for the custom calendar toolbar component.
+ *
+ * DESIGN:
+ * - Single row layout with three sections (left, center, right)
+ * - Pill-shaped buttons matching app design
+ * - Clean, minimal look
+ */
+
+/* ==================== Main Toolbar Container ==================== */
+
+.custom-toolbar {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  padding: 0;
+  width: 100%;
+  gap: 14px; /* Space between the two rows */
+}
+
+/* ==================== Toolbar Rows ==================== */
+
+/* Row 1: Navigation row - use relative positioning for absolute centering */
+.toolbar-row-nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px; /* Ensure space for absolutely positioned center */
+}
+
+/* Row 2: View selector row */
+.toolbar-row-views {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ==================== Navigation Row Sections ==================== */
+
+/* Left section: Today button - normal flow on the left */
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  z-index: 1;
+}
+
+/* Center section: Back, Date, Next - absolutely centered */
+.toolbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 2; /* Above left/right sections */
+}
+
+/* Right section: Empty - not displayed */
+.toolbar-right {
+  display: none;
+}
+
+/* ==================== View Selector Section ==================== */
+
+/* Views container - centered */
+.toolbar-views {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==================== Toolbar Buttons ==================== */
+
+/* Base button styling - pill shaped, minimal */
+.toolbar-btn {
+  padding: 8px 16px; /* More comfortable with two-row layout */
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  background-color: transparent;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 50px; /* Pill shape */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+
+/* Navigation buttons (Back/Next) - slightly smaller */
+.toolbar-btn-nav {
+  padding: 6px 14px;
+  font-size: 12px;
+  flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+
+/* Hover state */
+.toolbar-btn:hover {
+  border-color: #1a1a1a;
+  color: #1a1a1a;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Active state (current view) */
+.toolbar-btn-active {
+  background-color: #1a1a1a;
+  color: white;
+  border-color: #1a1a1a;
+}
+
+.toolbar-btn-active:hover {
+  background-color: #333;
+  border-color: #333;
+}
+
+/* ==================== Toolbar Label ==================== */
+
+.toolbar-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  text-align: center;
+  padding: 0 8px;
+  flex-shrink: 0; /* Prevent label from shrinking */
+}
+
+/* ==================== Responsive Design ==================== */
+
+/* Tablet and smaller */
+@media (max-width: 968px) {
+  .custom-toolbar {
+    gap: 10px;
+  }
+
+  /* Navigation row - stack vertically on tablets */
+  .toolbar-row-nav {
+    flex-direction: column;
+    gap: 10px;
+    min-height: auto;
+  }
+
+  /* Reset absolute positioning */
+  .toolbar-left {
+    position: static;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toolbar-center {
+    position: static;
+    transform: none;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-right {
+    display: none; /* Keep hidden */
+  }
+
+  .toolbar-views {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .toolbar-btn {
+    padding: 8px 15px;
+    font-size: 12px;
+  }
+
+  .toolbar-btn-nav {
+    padding: 7px 13px;
+    font-size: 12px;
+  }
+
+  .toolbar-label {
+    font-size: 14px;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 600px) {
+  .custom-toolbar {
+    gap: 10px;
+  }
+
+  .toolbar-center {
+    gap: 8px;
+  }
+
+  .toolbar-views {
+    gap: 5px;
+  }
+
+  .toolbar-btn {
+    padding: 8px 14px;
+    font-size: 11px;
+  }
+
+  .toolbar-btn-nav {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .toolbar-label {
+    font-size: 13px;
+  }
+}

@@ -17,9 +17,10 @@
  * DATA FLOW:
  * 1. User types command and submits
  * 2. Component calls /api/message with the command
- * 3. Backend parses with Groq API and returns structured JSON
- * 4. Component calls onMessageSent with message and response
- * 5. Parent (Dashboard) adds to chat history
+ * 3. Backend parses with Groq API AND executes on Google Calendar
+ * 4. Backend returns both parsed data and execution result
+ * 5. Component calls onMessageSent with message and complete response
+ * 6. Parent (Dashboard) adds to chat history and refreshes calendar
  */
 
 import { useState } from 'react'
@@ -81,8 +82,12 @@ function MessageInput({ onMessageSent }) {
       // Check if backend returned success
       if (response.data.success) {
         // Call parent callback with successful response
-        // Parent (Dashboard) will add this to chat history
-        onMessageSent(currentMessage, response.data.data, false)
+        // Response now includes 'message' (conversational response) and 'result' (raw data)
+        // Parent (Dashboard) will add this to chat history and refresh calendar
+        onMessageSent(currentMessage, {
+          message: response.data.message,
+          result: response.data.result
+        }, false)
       } else {
         // Backend returned error in response
         // Still show in chat but mark as error
