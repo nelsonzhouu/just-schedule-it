@@ -21,6 +21,8 @@ Endpoints:
 
 from flask import Flask, request, jsonify, g, make_response, redirect, session
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from config import Config
 from groq import Groq
 import json
@@ -78,6 +80,48 @@ CORS(app, origins=Config.CORS_ORIGINS, supports_credentials=True)
 # Initialize Groq AI client for natural language processing
 # Used to parse calendar commands like "schedule meeting tomorrow at 3pm"
 groq_client = Groq(api_key=Config.GROQ_API_KEY)
+
+
+# ==================== Rate Limiting Setup ====================
+
+def get_rate_limit_key():
+    """
+    Custom key function for rate limiting.
+
+    For authenticated endpoints: Rate limit by user_id (extracted from JWT)
+    For unauthenticated endpoints: Rate limit by IP address
+
+    This prevents users from bypassing rate limits by logging out,
+    while still protecting unauthenticated endpoints from abuse.
+    """
+    # Check if user is authenticated (user_id set by @require_auth decorator)
+    if hasattr(g, 'user_id') and g.user_id:
+        # Rate limit by user_id for authenticated requests
+        return f"user:{g.user_id}"
+    else:
+        # Rate limit by IP address for unauthenticated requests
+        return f"ip:{get_remote_address()}"
+
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_rate_limit_key,
+    default_limits=[]  # No default limits, we'll set per-endpoint
+)
+
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """
+    Custom error handler for rate limit exceeded (429 status).
+
+    Returns a friendly error message instead of the default Flask-Limiter message.
+    """
+    return jsonify({
+        'success': False,
+        'error': "You're sending too many requests. Please wait a moment and try again."
+    }), 429
 
 
 # ==================== Helper Functions for Conversational Responses ====================
@@ -324,6 +368,7 @@ def generate_conversational_response(action, parsed_data, result):
 # ==================== Authentication Endpoints ====================
 
 @app.route('/api/auth/login', methods=['GET'])
+@limiter.limit("10 per minute")
 def login():
     """
     Initiate the Google OAuth 2.0 login flow.
@@ -552,6 +597,7 @@ def logout():
 
 @app.route('/api/message', methods=['POST'])
 @require_auth  # Protected route - user must be logged in
+@limiter.limit("30 per minute")
 def handle_message():
     """
     Parse natural language calendar commands using Groq AI (Llama 3.1 8B Instant).
@@ -607,6 +653,13 @@ def handle_message():
             }), 400
 
         user_message = data['message'].strip()
+
+        # Validate message length (max 500 characters)
+        if len(user_message) > 500:
+            return jsonify({
+                'success': False,
+                'error': 'Your message is too long. Please keep commands under 500 characters.'
+            }), 400
 
         # ==================== CONFIRMATION FLOW ====================
         # Check if there's a pending action waiting for user confirmation
@@ -921,6 +974,7 @@ Output: {{"action": "list", "title": "events", "date": "{next_friday}", "time": 
 
 @app.route('/api/calendar/events', methods=['GET'])
 @require_auth  # Protected route - user must be logged in
+@limiter.limit("60 per minute")
 def get_calendar_events():
     """
     Fetch calendar events for a specific date range.
@@ -966,6 +1020,16 @@ def get_calendar_events():
             return jsonify({
                 'success': False,
                 'error': 'Both start and end parameters are required'
+            }), 400
+
+        # Validate that start and end are valid ISO datetime format
+        try:
+            datetime.fromisoformat(time_min.replace('Z', '+00:00'))
+            datetime.fromisoformat(time_max.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid date format'
             }), 400
 
         # Fetch events from Google Calendar

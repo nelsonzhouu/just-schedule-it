@@ -620,6 +620,7 @@ Tests are located in `backend/tests/`. To add new tests:
 ### Backend
 - **Flask 3.0** - Python web framework
 - **Flask-CORS** - Cross-origin resource sharing
+- **Flask-Limiter** - Rate limiting middleware for API protection
 - **Groq API** - Llama 3.1 8B Instant for natural language parsing
 - **Google OAuth 2.0** - Authentication with Calendar API scope
 - **Google Calendar API** - Calendar operations (create/delete/move/list)
@@ -657,7 +658,13 @@ Tests are located in `backend/tests/`. To add new tests:
 - ✅ **httpOnly cookies** - JWTs protected from XSS attacks
 - ✅ **Encrypted tokens** - Refresh tokens encrypted with Fernet before database storage
 - ✅ **CORS configured** - Cross-origin requests restricted to allowed origins
-- ✅ **Input validation** - All endpoints validate and sanitize input
+- ✅ **Input validation** - All endpoints validate and sanitize input:
+  - Message commands limited to 500 characters
+  - ISO datetime format validation for calendar queries
+- ✅ **Rate limiting** - Flask-Limiter protects against abuse:
+  - `/api/auth/login`: 10 requests/minute per IP
+  - `/api/message`: 30 requests/minute per user
+  - `/api/calendar/events`: 60 requests/minute per user
 - ✅ **Parameterized queries** - Supabase SDK prevents SQL injection
 - ✅ **Service role key** - Backend uses admin key, never exposed to frontend
 - ✅ **Protected routes** - Authentication required for dashboard and API access
@@ -714,6 +721,9 @@ Tests are located in `backend/tests/`. To add new tests:
 - [x] Implement fuzzy title matching
 - [x] Add time-specific event filtering
 - [x] Add automated backend testing with pytest (53 tests)
+- [x] Add security improvements:
+  - [x] Rate limiting (Flask-Limiter)
+  - [x] Input validation (message length, ISO datetime format)
 
 ### Phase 4 (Next)
 - [ ] Deploy backend to Render
