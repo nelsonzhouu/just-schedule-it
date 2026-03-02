@@ -14,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import request, jsonify, g
 from config import Config
@@ -239,8 +239,8 @@ def create_jwt(user_id: str):
     # Build the JWT payload with claims
     payload = {
         'user_id': user_id,  # Who this token belongs to
-        'exp': datetime.utcnow() + timedelta(seconds=Config.JWT_EXPIRATION),  # When it expires
-        'iat': datetime.utcnow()  # When it was issued (for debugging/logging)
+        'exp': datetime.now(timezone.utc) + timedelta(seconds=Config.JWT_EXPIRATION),  # When it expires
+        'iat': datetime.now(timezone.utc)  # When it was issued (for debugging/logging)
     }
 
     # Encode and sign the JWT using HS256 (HMAC with SHA-256)
@@ -263,26 +263,32 @@ def verify_jwt(token: str):
         token: JWT token string from httpOnly cookie
 
     Returns:
-        str: User ID (UUID) extracted from the token payload
-
-    Raises:
-        Exception: If token is expired, invalid, or has been tampered with
+        str: User ID (UUID) extracted from the token payload, or None if validation fails
+        None: If token is expired, invalid, malformed, empty, None, or missing user_id
     """
+    # Handle None or empty token
+    if not token:
+        return None
+
     try:
         # Decode the JWT and verify its signature
         # algorithms=['HS256'] ensures we only accept tokens signed with HS256
         # This prevents algorithm confusion attacks
         payload = jwt.decode(token, Config.JWT_SECRET, algorithms=['HS256'])
 
-        # Extract and return the user_id from the token
-        return payload['user_id']
+        # Extract the user_id from the token
+        # Return None if user_id is not in payload
+        return payload.get('user_id')
 
     except jwt.ExpiredSignatureError:
         # Token is valid but has expired (past the 'exp' claim)
-        raise Exception('Token has expired')
+        return None
     except jwt.InvalidTokenError:
         # Token is malformed, signature doesn't match, or other validation error
-        raise Exception('Invalid token')
+        return None
+    except Exception:
+        # Catch any other unexpected errors and return None
+        return None
 
 
 # ==================== Authentication Decorator ====================

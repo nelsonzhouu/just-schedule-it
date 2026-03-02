@@ -446,6 +446,165 @@ In Supabase → Table Editor:
 
 ---
 
+## Automated Testing
+
+### Running Backend Tests
+
+The backend includes comprehensive automated tests using pytest to ensure critical functions work correctly.
+
+#### Install Test Dependencies
+
+Test dependencies are included in `requirements.txt`. If you've already installed dependencies, you have them. Otherwise:
+
+```bash
+cd backend
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+```
+
+This installs:
+- `pytest` - Test framework
+- `pytest-mock` - Mocking support
+- `pytest-cov` - Coverage reporting
+- `freezegun` - Time freezing for deterministic date tests
+
+#### Run All Tests
+
+```bash
+cd backend
+pytest
+```
+
+You should see output like:
+```
+======================== test session starts ========================
+collected 53 items
+
+tests/test_auth.py .............                              [ 24%]
+tests/test_calendar_api.py ........................................  [100%]
+
+======================== 53 passed in 1.23s =========================
+```
+
+#### Run Tests with Verbose Output
+
+```bash
+pytest -v
+```
+
+Shows each individual test name as it runs.
+
+#### Run Tests with Coverage Report
+
+```bash
+pytest --cov=. --cov-report=term --cov-report=html
+```
+
+This generates:
+- **Terminal report** - Shows coverage percentage for each file
+- **HTML report** - Creates `htmlcov/` directory with detailed coverage report
+  - Open `htmlcov/index.html` in your browser to see line-by-line coverage
+
+Example coverage output:
+```
+----------- coverage: platform darwin, python 3.x.x -----------
+Name                    Stmts   Miss  Cover
+-------------------------------------------
+auth.py                   142     45    68%
+calendar_api.py           287    156    46%
+config.py                  23      0   100%
+-------------------------------------------
+TOTAL                     452    201    56%
+```
+
+#### Run Specific Tests
+
+```bash
+# Run tests from a specific file
+pytest tests/test_auth.py
+
+# Run tests from a specific class
+pytest tests/test_calendar_api.py::TestParseDatetime
+
+# Run a specific test
+pytest tests/test_calendar_api.py::TestParseDatetime::test_parse_tomorrow -v
+```
+
+#### Run Tests and Stop on First Failure
+
+```bash
+pytest -x
+```
+
+Useful for debugging - stops immediately when a test fails.
+
+### What's Being Tested
+
+**`tests/test_calendar_api.py` (40 tests):**
+
+1. **`parse_date_time()`** - Date and time parsing
+   - Relative dates: "today", "tomorrow", "friday", "monday"
+   - Absolute dates: "2026-03-15"
+   - Times: "3pm", "9am", "14:30", "12pm", "12am"
+   - Default behavior: missing time defaults to 12pm
+
+2. **`format_date_conversational()`** - Friendly date formatting
+   - Ordinal suffixes: 1st, 2nd, 3rd, 4th, 11th, 21st, 31st
+   - Month names and year formatting
+   - Edge cases: 11th-13th (should be "th" not "st/nd/rd")
+
+3. **`format_time_conversational()`** - Friendly time formatting
+   - AM/PM conversion: "9:00 AM", "3:00 PM"
+   - Edge cases: midnight (12:00 AM), noon (12:00 PM)
+
+4. **`format_time_range()`** - Time range formatting
+   - Normal ranges: "9:00 AM - 10:00 AM"
+   - All-day events: returns "All day"
+
+5. **Fuzzy Matching Logic** - Search flexibility
+   - "standup" finds "Daily Standup"
+   - "meeting" finds "Team Meeting"
+   - "dentist" finds "Dentist Appointment"
+   - Case-insensitive matching
+   - No match returns empty list
+
+**`tests/test_auth.py` (13 tests):**
+
+1. **`create_jwt()`** - JWT token creation
+   - Creates valid JWT tokens
+   - Payload contains user_id and expiration
+   - Expiration set to correct duration
+   - Different users get different tokens
+
+2. **`verify_jwt()`** - JWT token verification
+   - Valid tokens return user_id
+   - Returns None for:
+     - Expired tokens
+     - Invalid signatures
+     - Malformed tokens
+     - Empty/None tokens
+     - Tokens missing user_id
+
+### Test Features
+
+✅ **Mocked External Services** - No real API calls (Google Calendar, Groq)
+✅ **Frozen Time** - Deterministic date tests using freezegun at "2026-02-28 10:00:00"
+✅ **Shared Fixtures** - Reusable test data in `conftest.py`
+✅ **Fast Execution** - All 53 tests run in ~1-2 seconds
+✅ **Comprehensive Coverage** - Tests critical helper functions and edge cases
+
+### Writing New Tests
+
+Tests are located in `backend/tests/`. To add new tests:
+
+1. Add test functions to existing test files, or create a new file: `test_*.py`
+2. Use `@freeze_time("2026-02-28 10:00:00")` decorator for date-dependent tests
+3. Mock external services using `unittest.mock` or `pytest-mock`
+4. Follow naming convention: `test_*` for functions, `Test*` for classes
+5. Run `pytest` to verify new tests pass
+
+---
+
 ## Technology Stack
 
 ### Frontend
@@ -469,6 +628,12 @@ In Supabase → Table Editor:
 - **python-dotenv** - Environment variable management
 - **python-dateutil** - Advanced date parsing
 - **pytz** - Timezone handling
+
+### Testing
+- **pytest** - Test framework
+- **pytest-mock** - Mocking support for tests
+- **pytest-cov** - Code coverage reporting
+- **freezegun** - Time freezing for deterministic date tests
 
 ### Database
 - **Supabase** - PostgreSQL database as a service
@@ -548,6 +713,7 @@ In Supabase → Table Editor:
 - [x] Add event detail popup on click
 - [x] Implement fuzzy title matching
 - [x] Add time-specific event filtering
+- [x] Add automated backend testing with pytest (53 tests)
 
 ### Phase 4 (Next)
 - [ ] Deploy backend to Render
