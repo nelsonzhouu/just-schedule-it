@@ -53,12 +53,13 @@ from database import (
 # Import Google Calendar API functions
 # These handle calendar operations: create, delete, move, and list events
 from calendar_api import (
-    create_event,    # Create new calendar event
-    delete_event,    # Delete calendar event (with multiple match handling)
-    move_event,      # Move/reschedule calendar event (with multiple match handling)
-    list_events,     # List events for specific date
-    get_all_events,  # Get all events in a date range (for calendar view)
-    parse_date_time  # Parse natural language dates to ISO format
+    create_event,         # Create new calendar event
+    delete_event,         # Delete calendar event (with multiple match handling)
+    move_event,           # Move/reschedule calendar event (with multiple match handling)
+    update_event_note,    # Add/update notes on existing event (with multiple match handling)
+    list_events,          # List events for specific date
+    get_all_events,       # Get all events in a date range (for calendar view)
+    parse_date_time       # Parse natural language dates to ISO format
 )
 
 # Initialize Flask application
@@ -297,7 +298,26 @@ def generate_conversational_response(action, parsed_data, result):
             date_formatted = format_date_conversational(date_str) if date_str else 'today'
             time_formatted = format_time_conversational(time_str) if time_str else '12:00 PM'
 
-        return f"✓ Done! '{title}' scheduled for {date_formatted} at {time_formatted}"
+        # Build base response
+        response = f"✓ Done! '{title}' scheduled for {date_formatted} at {time_formatted}"
+
+        # Add reminder information if applicable
+        reminder_minutes = event_info.get('reminder_minutes')
+        if reminder_minutes is not None and reminder_minutes > 0:
+            # Convert minutes to hours if >= 60
+            if reminder_minutes >= 60:
+                hours = reminder_minutes // 60
+                remaining_minutes = reminder_minutes % 60
+                if remaining_minutes > 0:
+                    reminder_text = f"{hours} hour{'s' if hours > 1 else ''} and {remaining_minutes} minute{'s' if remaining_minutes > 1 else ''}"
+                else:
+                    reminder_text = f"{hours} hour{'s' if hours > 1 else ''}"
+            else:
+                reminder_text = f"{reminder_minutes} minute{'s' if reminder_minutes > 1 else ''}"
+
+            response += f". You'll be reminded {reminder_text} before."
+
+        return response
 
     elif action == 'delete':
         # Get the title from result or parsed_data
@@ -328,6 +348,19 @@ def generate_conversational_response(action, parsed_data, result):
             return f"✓ Done! '{title}' moved to {date_formatted}"
         else:
             return f"✓ Done! '{title}' has been rescheduled"
+
+    elif action == 'update_note':
+        # Get the title from result or parsed_data
+        event_info = result.get('event') or {}
+        title = event_info.get('title') or parsed_data.get('title', 'Event')
+        note = parsed_data.get('note', '')
+
+        # Show a snippet of the note if it's long
+        if len(note) > 50:
+            note_snippet = note[:47] + "..."
+            return f"✓ Done! Note added to '{title}': \"{note_snippet}\""
+        else:
+            return f"✓ Done! Note added to '{title}': \"{note}\""
 
     elif action == 'list':
         events = result.get('events', [])
@@ -706,6 +739,13 @@ def handle_message():
                                 parsed_data.get('new_end_time')
                             )
 
+                        elif action == 'update_note':
+                            execution_result = update_event_note(
+                                user_id,
+                                {'event_id': selected_event['id']},
+                                parsed_data.get('note', '')
+                            )
+
                         # Generate conversational response
                         conversational_message = generate_conversational_response(
                             action,
@@ -782,11 +822,12 @@ Supported actions:
 - create: Schedule a new event
 - delete: Cancel/remove an existing event
 - move: Reschedule an event to a different time/date
+- update_note: Add or update notes/description on an existing event
 - list: Show events for a specific date/period
 
 Required JSON structure:
 {{
-  "action": "create|delete|move|list",
+  "action": "create|delete|move|update_note|list",
   "title": "event name or description",
   "date": "YYYY-MM-DD format",
   "time": "HH:MM in 24-hour format, or null if not specified",
@@ -794,6 +835,9 @@ Required JSON structure:
   "new_date": "YYYY-MM-DD format for move action, or null otherwise",
   "new_time": "HH:MM in 24-hour format for move action, or null if not specified",
   "new_end_time": "HH:MM in 24-hour format for move action, or null if not specified",
+  "note": "event note/description text, or null if not specified",
+  "no_reminder": true if user explicitly says no reminder/without reminder/don't remind me/skip reminder, false otherwise,
+  "reminder_minutes": number of minutes before event to remind (e.g., 30, 60), or null if not specified (will default to 30 minutes),
   "confidence": 0.0 to 1.0 (how confident you are in parsing this command)
 }}
 
@@ -809,31 +853,72 @@ Rules:
    - No duration specified → end_time: null (defaults to 1 hour)
 6. For move actions, extract both original date/time/end_time and new date/time/end_time
 7. For list actions, determine the date range they're asking about
-8. Set confidence lower if the command is ambiguous
-9. Extract event titles/descriptions from context
-10. Return ONLY the JSON object, no other text
+8. Parse notes/descriptions:
+   - Look for keywords: "note:", "notes:", "description:", "reminder:", "bring", "don't forget"
+   - Example: "meeting tomorrow, note: bring laptop" → note: "bring laptop"
+   - Example: "call with John, don't forget the documents" → note: "don't forget the documents"
+9. Parse reminders and no_reminder:
+   - IMPORTANT: Set no_reminder field based on explicit "no reminder" phrases
+   - If user explicitly says "no reminder" phrases, set no_reminder: true:
+     * "no reminder" or "no reminders"
+     * "without a reminder" or "without reminder"
+     * "don't remind me" or "do not remind me"
+     * "skip the reminder" or "skip reminder"
+     * "no notification" or "no notifications"
+   - Otherwise, set no_reminder: false
+   - Parse custom reminder times: "remind me X minutes/hours before", "X minute reminder", "reminder X minutes"
+   - If custom time specified, set reminder_minutes to that value (convert hours to minutes: "1 hour" → 60)
+   - If no custom time specified, set reminder_minutes: null (will default to 30 minutes unless no_reminder is true)
+10. For update_note actions, extract the event to update and the note text
+11. Set confidence lower if the command is ambiguous
+12. Extract event titles/descriptions from context
+13. Return ONLY the JSON object, no other text
 
 Examples:
 Input: "schedule a meeting with John tomorrow at 3pm"
-Output: {{"action": "create", "title": "meeting with John", "date": "{tomorrow}", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "meeting with John", "date": "{tomorrow}", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "book a conference room from 1pm to 3pm tomorrow"
-Output: {{"action": "create", "title": "conference room", "date": "{tomorrow}", "time": "13:00", "end_time": "15:00", "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "conference room", "date": "{tomorrow}", "time": "13:00", "end_time": "15:00", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "schedule a 2 hour meeting at 3pm Friday"
-Output: {{"action": "create", "title": "meeting", "date": "{next_friday}", "time": "15:00", "end_time": "17:00", "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.90}}
+Output: {{"action": "create", "title": "meeting", "date": "{next_friday}", "time": "15:00", "end_time": "17:00", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
 
 Input: "30 minute call with Sarah at 2pm tomorrow"
-Output: {{"action": "create", "title": "call with Sarah", "date": "{tomorrow}", "time": "14:00", "end_time": "14:30", "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "call with Sarah", "date": "{tomorrow}", "time": "14:00", "end_time": "14:30", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "cancel my dentist appointment Friday"
-Output: {{"action": "delete", "title": "dentist appointment", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.85}}
+Output: {{"action": "delete", "title": "dentist appointment", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
 
 Input: "move my 2pm meeting to Thursday at 4pm"
-Output: {{"action": "move", "title": "2pm meeting", "date": "{today}", "time": "14:00", "end_time": null, "new_date": "{next_thursday}", "new_time": "16:00", "new_end_time": null, "confidence": 0.90}}
+Output: {{"action": "move", "title": "2pm meeting", "date": "{today}", "time": "14:00", "end_time": null, "new_date": "{next_thursday}", "new_time": "16:00", "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
 
 Input: "what do I have on Friday?"
-Output: {{"action": "list", "title": "events", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "confidence": 0.95}}"""
+Output: {{"action": "list", "title": "events", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "schedule a meeting tomorrow at 3pm, note: bring laptop"
+Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "remind me 1 hour before my dentist appointment tomorrow at 2pm"
+Output: {{"action": "create", "title": "dentist appointment", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": 60, "confidence": 0.90}}
+
+Input: "schedule a meeting Friday at 4pm without a reminder"
+Output: {{"action": "create", "title": "meeting", "date": "{next_friday}", "time": "16:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
+
+Input: "schedule a call tomorrow at 2pm, no reminder"
+Output: {{"action": "create", "title": "call", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
+
+Input: "book lunch Friday at noon, don't remind me"
+Output: {{"action": "create", "title": "lunch", "date": "{next_friday}", "time": "12:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
+
+Input: "schedule gym session tomorrow at 6am, skip the reminder"
+Output: {{"action": "create", "title": "gym session", "date": "{tomorrow}", "time": "06:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
+
+Input: "add a note to my meeting tomorrow: call John first"
+Output: {{"action": "update_note", "title": "meeting", "date": "{tomorrow}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "call John first", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
+
+Input: "update my dentist appointment Friday with note: bring insurance card"
+Output: {{"action": "update_note", "title": "dentist appointment", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring insurance card", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}"""
 
         # Call the Groq API to parse the natural language command
         # We use Llama 3.1 8B Instant - it's fast and accurate for structured tasks
@@ -893,6 +978,15 @@ Output: {{"action": "list", "title": "events", "date": "{next_friday}", "time": 
                     parsed_data.get('new_date'),
                     parsed_data.get('new_time'),
                     parsed_data.get('new_end_time')
+                )
+
+            elif action == 'update_note':
+                # Add or update notes on an existing event
+                # IMPORTANT: If multiple events match, this returns a list for user confirmation
+                execution_result = update_event_note(
+                    user_id,
+                    parsed_data,
+                    parsed_data.get('note', '')
                 )
 
             elif action == 'list':

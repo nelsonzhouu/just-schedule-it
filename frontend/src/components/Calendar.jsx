@@ -168,10 +168,29 @@ function Calendar({ onEventUpdate }) {
   }
 
   /**
+   * Format reminder minutes into readable text.
+   *
+   * @param {number} minutes - Number of minutes before event
+   * @returns {string} Readable reminder text (e.g., "30 minutes before", "1 hour before")
+   */
+  const formatReminder = (minutes) => {
+    if (minutes < 60) {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} before`
+    } else if (minutes % 60 === 0) {
+      const hours = minutes / 60
+      return `${hours} hour${hours !== 1 ? 's' : ''} before`
+    } else {
+      const hours = Math.floor(minutes / 60)
+      const mins = minutes % 60
+      return `${hours} hour${hours !== 1 ? 's' : ''} and ${mins} minute${mins !== 1 ? 's' : ''} before`
+    }
+  }
+
+  /**
    * Convert API event format to react-big-calendar format.
    *
-   * API format: { id, title, start: "ISO string", end: "ISO string", description }
-   * Calendar format: { id, title, start: Date object, end: Date object, description }
+   * API format: { id, title, start: "ISO string", end: "ISO string", description, reminders }
+   * Calendar format: { id, title, start: Date object, end: Date object, description, reminders }
    *
    * @param {Array} apiEvents - Events from /api/calendar/events
    * @returns {Array} Events formatted for react-big-calendar
@@ -182,7 +201,8 @@ function Calendar({ onEventUpdate }) {
       title: event.title,
       start: new Date(event.start),  // Convert ISO string to Date object
       end: new Date(event.end),      // Convert ISO string to Date object
-      description: event.description || ''
+      description: event.description || '',
+      reminders: event.reminders || []
     }))
   }
 
@@ -402,6 +422,31 @@ function Calendar({ onEventUpdate }) {
                   {formatTimeRange(selectedEvent.start, selectedEvent.end)}
                 </span>
               </div>
+
+              {/* Show note if it exists */}
+              {selectedEvent.description && (
+                <div className="event-popup-detail">
+                  <span className="event-popup-label">Note:</span>
+                  <span className="event-popup-value">
+                    {selectedEvent.description}
+                  </span>
+                </div>
+              )}
+
+              {/* Show reminders if they exist */}
+              {selectedEvent.reminders && selectedEvent.reminders.length > 0 && (
+                <div className="event-popup-detail">
+                  <span className="event-popup-label">Reminder:</span>
+                  <span className="event-popup-value">
+                    {selectedEvent.reminders.map((minutes, index) => (
+                      <span key={index}>
+                        {formatReminder(minutes)}
+                        {index < selectedEvent.reminders.length - 1 && ', '}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

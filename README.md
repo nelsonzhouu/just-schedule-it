@@ -19,8 +19,11 @@ Currently in **Phase 3C Complete**: Full Google Calendar integration with natura
 **JustScheduleIt** is an AI-powered calendar assistant that lets you manage your Google Calendar using natural language. Instead of clicking through forms, just type what you want:
 
 - **Create events:** "schedule a 30 minute standup at 9am tomorrow"
+- **Add notes:** "schedule a meeting tomorrow at 3pm, note: bring laptop"
+- **Set reminders:** "remind me 1 hour before my dentist appointment tomorrow"
 - **Delete events:** "cancel my meeting on Friday at 3pm"
 - **Reschedule events:** "move my dentist appointment to next Tuesday at 2pm"
+- **Update notes:** "add a note to my meeting tomorrow: call John first"
 - **List events:** "what do I have on Monday?"
 
 The app uses Groq's Llama 3.1 model to parse your commands, then executes them on your real Google Calendar. View your calendar in a beautiful week view and see changes happen in real-time.
@@ -33,17 +36,24 @@ The app uses Groq's Llama 3.1 model to parse your commands, then executes them o
 
 **Natural Language Calendar Management:**
 - Parse complex calendar commands using Groq AI (Llama 3.1 8B Instant)
-- Support for 4 actions: **create**, **delete**, **move**, **list**
+- Support for 5 actions: **create**, **delete**, **move**, **update_note**, **list**
 - Intelligent date/time parsing (relative dates like "tomorrow", "next Friday")
 - Duration parsing ("30 minute meeting", "2 hour call", "from 1pm to 3pm")
+- **Event notes/descriptions** ("schedule a meeting tomorrow, note: bring laptop")
+- **Custom reminders** ("remind me 1 hour before my dentist appointment")
+- **No reminder option** ("schedule a meeting Friday without a reminder")
+- Default 30-minute reminder for all events unless explicitly disabled
 - Fuzzy title matching ("meeting" finds "Team Meeting")
 - Time-specific matching ("delete meeting at 3pm" won't delete the 2pm meeting)
 - Multiple match confirmation flow with numbered selection
-- Conversational responses ("✓ Done! 'Meeting' scheduled for March 1st, 2026 at 3:00 PM")
+- Conversational responses with reminder confirmation ("You'll be reminded 30 minutes before")
 
 **Google Calendar Integration:**
 - Full Google Calendar API integration
-- Create events with custom titles, dates, times, and durations
+- Create events with custom titles, dates, times, durations, notes, and reminders
+- Add or update notes/descriptions on existing events
+- Set custom reminder times (minutes or hours before event)
+- Explicitly disable reminders when requested
 - Delete events with confirmation when multiple matches found
 - Move/reschedule events to new dates and times
 - List events for specific dates or date ranges
@@ -54,7 +64,8 @@ The app uses Groq's Llama 3.1 model to parse your commands, then executes them o
 **Calendar View:**
 - Interactive calendar using react-big-calendar
 - Week view by default (configurable to month/day/agenda)
-- Click events to see details in a popup (title, date, time range)
+- Click events to see details in a popup (title, date, time range, notes, reminders)
+- Event popup displays notes and reminder times when present
 - Custom toolbar with Today/Back/Next navigation
 - Scrolls to 8:00 AM by default for workday view
 - Responsive design for mobile and desktop
@@ -359,6 +370,8 @@ In the calendar section:
    - Event title
    - Formatted date (e.g., "March 4th, 2026")
    - Time range (e.g., "3:00 PM - 4:00 PM")
+   - Notes/description (if present)
+   - Reminder time (if present, e.g., "30 minutes before")
    - Close button (or click outside/press Escape to close)
 
 ### 5. Test Natural Language Commands
@@ -370,6 +383,30 @@ Try these commands in the chat interface:
 schedule a meeting with John tomorrow at 3pm
 book a 30 minute standup at 9am on Friday
 schedule a 2 hour workshop from 1pm to 3pm next Monday
+```
+
+**Create Events with Notes:**
+```
+schedule a meeting tomorrow at 3pm, note: bring laptop
+book a call with Sarah Friday at 2pm, note: discuss Q1 roadmap
+```
+
+**Create Events with Custom Reminders:**
+```
+remind me 1 hour before my dentist appointment tomorrow at 2pm
+schedule a meeting Friday at 4pm, remind me 15 minutes before
+```
+
+**Create Events without Reminders:**
+```
+schedule a meeting Friday at 4pm without a reminder
+book lunch tomorrow at noon, no reminder
+```
+
+**Add Notes to Existing Events:**
+```
+add a note to my meeting tomorrow: call John first
+update my dentist appointment Friday with note: bring insurance card
 ```
 
 **Delete Events:**
@@ -590,7 +627,7 @@ Useful for debugging - stops immediately when a test fails.
 ✅ **Mocked External Services** - No real API calls (Google Calendar, Groq)
 ✅ **Frozen Time** - Deterministic date tests using freezegun at "2026-02-28 10:00:00"
 ✅ **Shared Fixtures** - Reusable test data in `conftest.py`
-✅ **Fast Execution** - All 53 tests run in ~1-2 seconds
+✅ **Fast Execution** - All 65 tests run in ~1-2 seconds
 ✅ **Comprehensive Coverage** - Tests critical helper functions and edge cases
 
 ### Writing New Tests
@@ -708,6 +745,11 @@ Tests are located in `backend/tests/`. To add new tests:
 - [x] Integrate Google Calendar API
 - [x] Implement calendar operations:
   - [x] Create events with custom duration support
+  - [x] Add event notes/descriptions
+  - [x] Set custom reminders (minutes or hours before event)
+  - [x] Disable reminders when explicitly requested
+  - [x] Default 30-minute reminder for all events
+  - [x] Update notes on existing events (update_note action)
   - [x] Delete events with fuzzy matching and confirmation
   - [x] Move/reschedule events with duration preservation
   - [x] List events with timezone awareness
@@ -718,9 +760,10 @@ Tests are located in `backend/tests/`. To add new tests:
 - [x] Add multiple match confirmation flow with session storage
 - [x] Create custom calendar toolbar
 - [x] Add event detail popup on click
+- [x] Display notes and reminders in event popup
 - [x] Implement fuzzy title matching
 - [x] Add time-specific event filtering
-- [x] Add automated backend testing with pytest (53 tests)
+- [x] Add automated backend testing with pytest (65 tests)
 - [x] Add security improvements:
   - [x] Rate limiting (Flask-Limiter)
   - [x] Input validation (message length, ISO datetime format)

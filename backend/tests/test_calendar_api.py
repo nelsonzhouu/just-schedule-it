@@ -22,7 +22,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from calendar_api import (
     parse_date_time,
     format_time_range,
-    search_events
+    search_events,
+    create_event
 )
 from app import (
     format_date_conversational,
@@ -416,3 +417,188 @@ class TestFuzzyMatching:
         # Should find the event regardless of case
         assert len(results) == 1
         assert results[0]['title'] == 'IMPORTANT MEETING'
+
+
+# ==================== Tests for create_event() with Notes and Reminders ====================
+
+class TestCreateEventNotesAndReminders:
+    """Test create_event() function with notes and reminders features."""
+
+    @patch('calendar_api.get_calendar_service')
+    @patch('calendar_api.get_user_timezone')
+    @freeze_time("2026-02-28 10:00:00")
+    def test_create_event_with_note(self, mock_timezone, mock_service):
+        """Test that create_event() passes note as description to Google Calendar API."""
+        # Mock timezone
+        mock_timezone.return_value = 'America/Los_Angeles'
+
+        # Mock calendar service
+        mock_cal_service = Mock()
+        mock_events = Mock()
+        mock_insert = Mock()
+
+        # Expected created event response from Google Calendar API
+        created_event = {
+            'id': 'event123',
+            'summary': 'Meeting With John',
+            'start': {'dateTime': '2026-03-01T15:00:00'},
+            'end': {'dateTime': '2026-03-01T16:00:00'},
+            'htmlLink': 'https://calendar.google.com/event123',
+            'description': 'Bring laptop'
+        }
+
+        mock_insert.execute.return_value = created_event
+        mock_events.insert.return_value = mock_insert
+        mock_cal_service.events.return_value = mock_events
+        mock_service.return_value = mock_cal_service
+
+        # Create event with note
+        result = create_event('user123', {
+            'title': 'meeting with John',
+            'date': 'tomorrow',
+            'time': '3pm',
+            'note': 'Bring laptop'
+        })
+
+        # Verify success
+        assert result['success'] is True
+        assert result['event']['title'] == 'Meeting With John'
+
+        # Verify that Google Calendar API was called with description field
+        call_args = mock_events.insert.call_args
+        assert call_args[1]['calendarId'] == 'primary'
+        event_body = call_args[1]['body']
+        assert event_body['description'] == 'Bring laptop'
+        assert event_body['summary'] == 'Meeting With John'
+
+    @patch('calendar_api.get_calendar_service')
+    @patch('calendar_api.get_user_timezone')
+    @freeze_time("2026-02-28 10:00:00")
+    def test_create_event_default_30min_reminder(self, mock_timezone, mock_service):
+        """Test that create_event() adds 30 minute default reminder when not specified."""
+        # Mock timezone
+        mock_timezone.return_value = 'America/Los_Angeles'
+
+        # Mock calendar service
+        mock_cal_service = Mock()
+        mock_events = Mock()
+        mock_insert = Mock()
+
+        created_event = {
+            'id': 'event123',
+            'summary': 'Meeting',
+            'start': {'dateTime': '2026-03-01T15:00:00'},
+            'end': {'dateTime': '2026-03-01T16:00:00'},
+            'htmlLink': 'https://calendar.google.com/event123'
+        }
+
+        mock_insert.execute.return_value = created_event
+        mock_events.insert.return_value = mock_insert
+        mock_cal_service.events.return_value = mock_events
+        mock_service.return_value = mock_cal_service
+
+        # Create event without specifying reminder_minutes
+        result = create_event('user123', {
+            'title': 'meeting',
+            'date': 'tomorrow',
+            'time': '3pm'
+        })
+
+        # Verify success
+        assert result['success'] is True
+
+        # Verify that Google Calendar API was called with 30 minute reminder
+        call_args = mock_events.insert.call_args
+        event_body = call_args[1]['body']
+        assert 'reminders' in event_body
+        assert event_body['reminders']['useDefault'] is False
+        assert event_body['reminders']['overrides'][0]['method'] == 'popup'
+        assert event_body['reminders']['overrides'][0]['minutes'] == 30
+
+    @patch('calendar_api.get_calendar_service')
+    @patch('calendar_api.get_user_timezone')
+    @freeze_time("2026-02-28 10:00:00")
+    def test_create_event_custom_reminder(self, mock_timezone, mock_service):
+        """Test that create_event() adds custom reminder (60 minutes)."""
+        # Mock timezone
+        mock_timezone.return_value = 'America/Los_Angeles'
+
+        # Mock calendar service
+        mock_cal_service = Mock()
+        mock_events = Mock()
+        mock_insert = Mock()
+
+        created_event = {
+            'id': 'event123',
+            'summary': 'Dentist Appointment',
+            'start': {'dateTime': '2026-03-01T14:00:00'},
+            'end': {'dateTime': '2026-03-01T15:00:00'},
+            'htmlLink': 'https://calendar.google.com/event123'
+        }
+
+        mock_insert.execute.return_value = created_event
+        mock_events.insert.return_value = mock_insert
+        mock_cal_service.events.return_value = mock_events
+        mock_service.return_value = mock_cal_service
+
+        # Create event with 60 minute reminder
+        result = create_event('user123', {
+            'title': 'dentist appointment',
+            'date': 'tomorrow',
+            'time': '2pm',
+            'reminder_minutes': 60
+        })
+
+        # Verify success
+        assert result['success'] is True
+
+        # Verify that Google Calendar API was called with 60 minute reminder
+        call_args = mock_events.insert.call_args
+        event_body = call_args[1]['body']
+        assert 'reminders' in event_body
+        assert event_body['reminders']['useDefault'] is False
+        assert event_body['reminders']['overrides'][0]['method'] == 'popup'
+        assert event_body['reminders']['overrides'][0]['minutes'] == 60
+
+    @patch('calendar_api.get_calendar_service')
+    @patch('calendar_api.get_user_timezone')
+    @freeze_time("2026-02-28 10:00:00")
+    def test_create_event_no_reminder(self, mock_timezone, mock_service):
+        """Test that create_event() adds no reminders when reminder_minutes is null."""
+        # Mock timezone
+        mock_timezone.return_value = 'America/Los_Angeles'
+
+        # Mock calendar service
+        mock_cal_service = Mock()
+        mock_events = Mock()
+        mock_insert = Mock()
+
+        created_event = {
+            'id': 'event123',
+            'summary': 'Meeting',
+            'start': {'dateTime': '2026-03-01T16:00:00'},
+            'end': {'dateTime': '2026-03-01T17:00:00'},
+            'htmlLink': 'https://calendar.google.com/event123'
+        }
+
+        mock_insert.execute.return_value = created_event
+        mock_events.insert.return_value = mock_insert
+        mock_cal_service.events.return_value = mock_events
+        mock_service.return_value = mock_cal_service
+
+        # Create event with reminder_minutes explicitly set to null (no reminder)
+        result = create_event('user123', {
+            'title': 'meeting',
+            'date': 'tomorrow',
+            'time': '4pm',
+            'reminder_minutes': None
+        })
+
+        # Verify success
+        assert result['success'] is True
+
+        # Verify that Google Calendar API was called WITHOUT reminders field
+        call_args = mock_events.insert.call_args
+        event_body = call_args[1]['body']
+        # When reminder_minutes is None (null), no reminders should be added
+        assert 'reminders' not in event_body

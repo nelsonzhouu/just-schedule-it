@@ -433,6 +433,10 @@ def create_event(user_id: str, event_data: dict):
                    - date: Date string (e.g., "tomorrow", "Friday", "2026-03-15")
                    - time: Time string (e.g., "3pm", "14:30") - optional
                    - end_time: End time string (e.g., "5pm", "17:00") - optional
+                   - note: Event description/notes - optional
+                   - reminder_minutes: Minutes before event to remind (e.g., 30, 60)
+                                     - optional, defaults to 30 if not specified
+                                     - set to null to disable reminders
 
     Returns:
         dict: Result with:
@@ -445,7 +449,9 @@ def create_event(user_id: str, event_data: dict):
             "title": "Meeting with John",
             "date": "tomorrow",
             "time": "3pm",
-            "end_time": "5pm"
+            "end_time": "5pm",
+            "note": "Bring laptop",
+            "reminder_minutes": 30
         })
     """
     try:
@@ -489,8 +495,60 @@ def create_event(user_id: str, event_data: dict):
             },
         }
 
+        # Add description/note if provided
+        note = event_data.get('note')
+        if note:
+            event['description'] = note
+
+        # Add reminders
+        # Logic:
+        # 1. If no_reminder is true → NO REMINDERS (useDefault=False, overrides=[])
+        # 2. Else if reminder_minutes is a number > 0 → use that custom reminder
+        # 3. Else → use default 30 minute reminder
+        #
+        # IMPORTANT: We must set useDefault=False with empty overrides=[] to disable
+        # all reminders. If we don't include a reminders field at all, Google Calendar
+        # will apply the user's default reminder settings.
+
+        no_reminder = event_data.get('no_reminder', False)
+        reminder_minutes = event_data.get('reminder_minutes')
+
+        if no_reminder:
+            # User explicitly said "no reminder"
+            event['reminders'] = {
+                'useDefault': False,
+                'overrides': []
+            }
+        elif reminder_minutes is not None and reminder_minutes > 0:
+            # Custom reminder time
+            event['reminders'] = {
+                'useDefault': False,
+                'overrides': [
+                    {'method': 'popup', 'minutes': reminder_minutes}
+                ]
+            }
+        else:
+            # No explicit "no reminder" and no custom time, use default 30 minutes
+            event['reminders'] = {
+                'useDefault': False,
+                'overrides': [
+                    {'method': 'popup', 'minutes': 30}
+                ]
+            }
+
         # Insert the event into the user's primary calendar
         created_event = service.events().insert(calendarId='primary', body=event).execute()
+
+        # Determine what reminder_minutes to return for conversational response
+        if event_data.get('no_reminder', False):
+            # User explicitly said "no reminder"
+            returned_reminder = None
+        elif reminder_minutes is not None and reminder_minutes > 0:
+            # Custom reminder time
+            returned_reminder = reminder_minutes
+        else:
+            # Default 30 minutes
+            returned_reminder = 30
 
         return {
             'success': True,
@@ -500,7 +558,8 @@ def create_event(user_id: str, event_data: dict):
                 'title': created_event.get('summary'),
                 'start': created_event['start'].get('dateTime'),
                 'end': created_event['end'].get('dateTime'),
-                'link': created_event.get('htmlLink')
+                'link': created_event.get('htmlLink'),
+                'reminder_minutes': returned_reminder
             }
         }
 
@@ -829,6 +888,145 @@ def move_event(user_id: str, event_query: dict, new_date: str, new_time: str = N
         }
 
 
+# ==================== Update Event Note ====================
+
+def update_event_note(user_id: str, event_query: dict, note: str):
+    """
+    Add or update notes/description on an existing event.
+
+    IMPORTANT: If multiple events match, returns all matches for user confirmation
+    instead of blindly updating the first one.
+
+    IMPORTANT: If a time is specified in event_query, only matches events at that
+    exact time. This prevents accidentally updating the wrong event.
+
+    Args:
+        user_id: UUID of the user
+        event_query: Dictionary with:
+                    - title: Event title to search for (optional)
+                    - date: Date to search on (optional)
+                    - time: Time to match (e.g., "3pm", "14:30") (optional)
+                    - event_id: Specific event ID (optional, for confirmation)
+        note: The note/description text to add or update
+
+    Returns:
+        dict: Result with:
+              - success: True/False
+              - message: Success/error message
+              - event: Updated event details (if successful)
+              - multiple_matches: List of matching events (if multiple found)
+              - needs_confirmation: True if user needs to choose from multiple
+
+    Example:
+        update_event_note(user_id, {"title": "meeting", "date": "tomorrow"}, "Bring laptop")
+    """
+    try:
+        # Get authenticated Calendar API service
+        service = get_calendar_service(user_id)
+
+        # Check if user is confirming a specific event ID
+        if 'event_id' in event_query:
+            # User has confirmed which event to update
+            event_id = event_query['event_id']
+
+            try:
+                # Get the event
+                event = service.events().get(calendarId='primary', eventId=event_id).execute()
+
+                # Update the description
+                event['description'] = note
+
+                # Update the event
+                updated_event = service.events().update(
+                    calendarId='primary',
+                    eventId=event_id,
+                    body=event
+                ).execute()
+
+                return {
+                    'success': True,
+                    'message': f'Note added to "{updated_event.get("summary")}"',
+                    'event': {
+                        'id': updated_event['id'],
+                        'title': updated_event.get('summary'),
+                        'start': updated_event['start'].get('dateTime'),
+                        'end': updated_event['end'].get('dateTime')
+                    },
+                    'needs_confirmation': False
+                }
+            except Exception as e:
+                return {
+                    'success': False,
+                    'message': f'Failed to update event note: {str(e)}',
+                    'needs_confirmation': False
+                }
+
+        # Search for matching events
+        title = event_query.get('title')
+        date_str = event_query.get('date')
+        time_str = event_query.get('time')
+
+        matching_events = search_events(user_id, service, title, date_str, time_str)
+
+        if len(matching_events) == 0:
+            # Provide helpful error message if time was specified
+            if time_str:
+                return {
+                    'success': False,
+                    'message': f'No events found at {time_str}' + (f' on {date_str}' if date_str else ''),
+                    'needs_confirmation': False
+                }
+            else:
+                return {
+                    'success': False,
+                    'message': 'No matching events found',
+                    'needs_confirmation': False
+                }
+        elif len(matching_events) == 1:
+            # Only one match - safe to update
+            event_id = matching_events[0]['id']
+
+            # Get the event
+            event = service.events().get(calendarId='primary', eventId=event_id).execute()
+
+            # Update the description
+            event['description'] = note
+
+            # Update the event
+            updated_event = service.events().update(
+                calendarId='primary',
+                eventId=event_id,
+                body=event
+            ).execute()
+
+            return {
+                'success': True,
+                'message': f'Note added to "{updated_event.get("summary")}"',
+                'event': {
+                    'id': updated_event['id'],
+                    'title': updated_event.get('summary'),
+                    'start': updated_event['start'].get('dateTime'),
+                    'end': updated_event['end'].get('dateTime')
+                },
+                'needs_confirmation': False
+            }
+        else:
+            # Multiple matches - ask user to confirm which one
+            return {
+                'success': False,
+                'message': f'Found {len(matching_events)} matching events. Please specify which one:',
+                'multiple_matches': matching_events,
+                'needs_confirmation': True
+            }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error searching for events: {str(e)}',
+            'needs_confirmation': False
+        }
+
+
 # ==================== List Events ====================
 
 def list_events(user_id: str, date_query: str = None, time_query: str = None):
@@ -999,6 +1197,8 @@ def get_all_events(user_id: str, time_min: str, time_max: str):
               - start: Start datetime
               - end: End datetime
               - allDay: Boolean indicating all-day event
+              - description: Event description/notes (optional)
+              - reminders: List of reminder times in minutes (optional)
 
     Example:
         get_all_events(user_id, "2026-03-01T00:00:00Z", "2026-03-31T23:59:59Z")
@@ -1024,13 +1224,30 @@ def get_all_events(user_id: str, time_min: str, time_max: str):
             # Check if it's an all-day event (has 'date' instead of 'dateTime')
             is_all_day = 'date' in event['start']
 
-            formatted_events.append({
+            # Extract reminders if they exist
+            reminders = []
+            if 'reminders' in event:
+                reminder_data = event['reminders']
+                # Check if using custom reminders (not default)
+                if not reminder_data.get('useDefault', True) and 'overrides' in reminder_data:
+                    reminders = [r['minutes'] for r in reminder_data['overrides'] if r.get('method') == 'popup']
+
+            formatted_event = {
                 'id': event['id'],
                 'title': event.get('summary', 'Untitled'),
                 'start': event['start'].get('dateTime') or event['start'].get('date'),
                 'end': event['end'].get('dateTime') or event['end'].get('date'),
                 'allDay': is_all_day
-            })
+            }
+
+            # Add optional fields only if they exist
+            if 'description' in event:
+                formatted_event['description'] = event['description']
+
+            if reminders:
+                formatted_event['reminders'] = reminders
+
+            formatted_events.append(formatted_event)
 
         return formatted_events
 
