@@ -216,3 +216,10 @@ frontend/.vite/
 # OS
 .DS_Store
 .DS_Store?
+
+# Google OAuth Credentials
+# IMPORTANT: Never commit these files - they contain sensitive API keys and access tokens
+credentials.json
+token.pickle
+backend/credentials.json
+backend/token.pickle
