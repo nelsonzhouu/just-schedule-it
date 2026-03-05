@@ -55,6 +55,7 @@ from database import (
 from calendar_api import (
     create_event,         # Create new calendar event
     delete_event,         # Delete calendar event (with multiple match handling)
+    delete_event_by_id,   # Delete calendar event by ID (direct deletion)
     move_event,           # Move/reschedule calendar event (with multiple match handling)
     update_event_note,    # Add/update notes on existing event (with multiple match handling)
     list_events,          # List events for specific date
@@ -1143,6 +1144,57 @@ def get_calendar_events():
         return jsonify({
             'success': False,
             'error': 'Failed to fetch calendar events'
+        }), 500
+
+
+@app.route('/api/calendar/events/<event_id>', methods=['DELETE'])
+@require_auth  # Protected route - user must be logged in
+@limiter.limit("60 per minute")
+def delete_calendar_event(event_id):
+    """
+    Delete a specific calendar event by ID.
+
+    This endpoint is used by the Calendar component when the user clicks
+    the delete button on an event popup. It directly deletes the event
+    without requiring confirmation since the user already confirmed in the UI.
+
+    URL parameters:
+    - event_id: Google Calendar event ID
+
+    Returns:
+    {
+        "success": true,
+        "message": "Event deleted successfully"
+    }
+
+    Error responses:
+    - 500: Failed to delete event from Google Calendar
+    """
+    try:
+        # Get the authenticated user's ID from the JWT
+        user_id = g.user_id
+
+        # Delete the event by ID
+        result = delete_event_by_id(user_id, event_id)
+
+        # Return success or error based on result
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'message': result['message']
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': result['message']
+            }), 500
+
+    except Exception as e:
+        # If deletion fails, log the error and return error response
+        print(f"Error deleting calendar event: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to delete calendar event'
         }), 500
 
 

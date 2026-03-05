@@ -21,7 +21,7 @@ Currently in **Phase 3C Complete**: Full Google Calendar integration with natura
 - **Create events:** "schedule a 30 minute standup at 9am tomorrow"
 - **Add notes:** "schedule a meeting tomorrow at 3pm, note: bring laptop"
 - **Set reminders:** "remind me 1 hour before my dentist appointment tomorrow"
-- **Delete events:** "cancel my meeting on Friday at 3pm"
+- **Delete events:** "cancel my meeting on Friday at 3pm" or click the trash icon in the event popup
 - **Reschedule events:** "move my dentist appointment to next Tuesday at 2pm"
 - **Update notes:** "add a note to my meeting tomorrow: call John first"
 - **List events:** "what do I have on Monday?"
@@ -66,6 +66,7 @@ The app uses Groq's Llama 3.1 model to parse your commands, then executes them o
 - Week view by default (configurable to month/day/agenda)
 - Click events to see details in a popup (title, date, time range, notes, reminders)
 - Event popup displays notes and reminder times when present
+- **Delete events directly** from popup using trash bin icon with confirmation dialog
 - Custom toolbar with Today/Back/Next navigation
 - Scrolls to 8:00 AM by default for workday view
 - Responsive design for mobile and desktop
@@ -103,6 +104,7 @@ The app uses Groq's Llama 3.1 model to parse your commands, then executes them o
 - `POST /api/auth/logout` - Logout user (protected)
 - `POST /api/message` - Parse and execute calendar commands (protected)
 - `GET /api/calendar/events` - Fetch calendar events for date range (protected)
+- `DELETE /api/calendar/events/<event_id>` - Delete specific event by ID (protected)
 
 ---
 
@@ -414,6 +416,8 @@ update my dentist appointment Friday with note: bring insurance card
 cancel my meeting tomorrow
 delete dentist appointment on Friday at 3pm
 ```
+
+**Or click directly on any event in the calendar view and use the trash bin icon in the popup!**
 
 **Move/Reschedule Events:**
 ```
@@ -761,6 +765,7 @@ Tests are located in `backend/tests/`. To add new tests:
 - [x] Create custom calendar toolbar
 - [x] Add event detail popup on click
 - [x] Display notes and reminders in event popup
+- [x] Add delete button to event popup with confirmation dialog
 - [x] Implement fuzzy title matching
 - [x] Add time-specific event filtering
 - [x] Add automated backend testing with pytest (65 tests)
@@ -792,6 +797,7 @@ Tests are located in `backend/tests/`. To add new tests:
 - Natural language interface - type like you talk
 - Conversational AI responses - friendly, not robotic
 - Real-time calendar updates
+- Quick event deletion - click event popup trash icon with confirmation
 - Fuzzy matching - "meeting" finds "Team Meeting"
 - Multiple match confirmation - never delete the wrong event
 - Modern SaaS aesthetic with warm, inviting colors

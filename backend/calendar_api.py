@@ -673,6 +673,45 @@ def delete_event(user_id: str, event_query: dict):
         }
 
 
+def delete_event_by_id(user_id: str, event_id: str):
+    """
+    Delete an event from Google Calendar by its event ID.
+
+    This is a simple direct deletion - no searching or confirmation needed.
+    Used when the frontend already knows the exact event ID to delete
+    (e.g., from clicking delete button on an event in the calendar view).
+
+    Args:
+        user_id: UUID of the user
+        event_id: Google Calendar event ID
+
+    Returns:
+        dict: Result with:
+              - success: True/False
+              - message: Success/error message
+
+    Example:
+        delete_event_by_id('user123', 'abc123xyz')
+    """
+    try:
+        # Get authenticated Calendar API service
+        service = get_calendar_service(user_id)
+
+        # Delete the event directly
+        service.events().delete(calendarId='primary', eventId=event_id).execute()
+
+        return {
+            'success': True,
+            'message': 'Event deleted successfully'
+        }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Failed to delete event: {str(e)}'
+        }
+
+
 # ==================== Move Event ====================
 
 def move_event(user_id: str, event_query: dict, new_date: str, new_time: str = None, new_end_time: str = None):
