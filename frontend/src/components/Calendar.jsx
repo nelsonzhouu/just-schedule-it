@@ -28,6 +28,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import enUS from 'date-fns/locale/en-US'
+import { Trash2 } from 'lucide-react'
 import api from '../utils/api'
 import CustomToolbar from './CustomToolbar'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -68,6 +69,12 @@ function Calendar({ onEventUpdate }) {
 
   // Selected event for popup display
   const [selectedEvent, setSelectedEvent] = useState(null)
+
+  // Delete confirmation dialog state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  // Error message if deletion fails
+  const [deleteError, setDeleteError] = useState(null)
 
   // ==================== Helper Functions ====================
 
@@ -306,6 +313,48 @@ function Calendar({ onEventUpdate }) {
    */
   const closeEventPopup = () => {
     setSelectedEvent(null)
+    setShowDeleteConfirm(false)
+    setDeleteError(null)
+  }
+
+  /**
+   * Handle delete button click - show confirmation dialog
+   */
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true)
+    setDeleteError(null)
+  }
+
+  /**
+   * Handle delete cancellation - hide confirmation dialog
+   */
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false)
+    setDeleteError(null)
+  }
+
+  /**
+   * Handle delete confirmation - actually delete the event
+   */
+  const handleDeleteConfirm = async () => {
+    try {
+      setDeleteError(null)
+
+      // Call DELETE endpoint
+      const response = await api.delete(`/calendar/events/${selectedEvent.id}`)
+
+      if (response.data.success) {
+        // Close popup and refresh calendar
+        closeEventPopup()
+        refreshCalendar()
+      } else {
+        // Show error message in popup
+        setDeleteError(response.data.error || 'Failed to delete event')
+      }
+    } catch (err) {
+      console.error('Error deleting event:', err)
+      setDeleteError('Failed to delete event. Please try again.')
+    }
   }
 
   // Close popup on Escape key press
@@ -402,10 +451,15 @@ function Calendar({ onEventUpdate }) {
       {selectedEvent && (
         <div className="event-popup-overlay" onClick={closeEventPopup}>
           <div className="event-popup" onClick={(e) => e.stopPropagation()}>
-            {/* Close button */}
-            <button className="event-popup-close" onClick={closeEventPopup}>
-              ×
-            </button>
+            {/* Header buttons - Close and Delete */}
+            <div className="event-popup-header">
+              <button className="event-popup-delete" onClick={handleDeleteClick} title="Delete event">
+                <Trash2 size={18} />
+              </button>
+              <button className="event-popup-close" onClick={closeEventPopup}>
+                ×
+              </button>
+            </div>
 
             {/* Event details */}
             <div className="event-popup-content">
@@ -445,6 +499,28 @@ function Calendar({ onEventUpdate }) {
                       </span>
                     ))}
                   </span>
+                </div>
+              )}
+
+              {/* Show error message if deletion fails */}
+              {deleteError && (
+                <div className="event-popup-error">
+                  {deleteError}
+                </div>
+              )}
+
+              {/* Delete confirmation dialog */}
+              {showDeleteConfirm && (
+                <div className="event-popup-confirm">
+                  <p>Are you sure you want to delete this event?</p>
+                  <div className="event-popup-confirm-buttons">
+                    <button onClick={handleDeleteCancel} className="event-popup-confirm-cancel">
+                      Cancel
+                    </button>
+                    <button onClick={handleDeleteConfirm} className="event-popup-confirm-delete">
+                      Confirm
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

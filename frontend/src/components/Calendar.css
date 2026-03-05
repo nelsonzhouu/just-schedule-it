@@ -537,11 +537,38 @@
   position: relative;
 }
 
-/* Close button */
-.event-popup-close {
+/* Header with delete and close buttons */
+.event-popup-header {
   position: absolute;
   top: 12px;
   right: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Delete button */
+.event-popup-delete {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.event-popup-delete:hover {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
+/* Close button */
+.event-popup-close {
   background: none;
   border: none;
   font-size: 28px;
@@ -597,5 +624,67 @@
 /* Value */
 .event-popup-value {
   color: #1a1a1a;
+}
+
+/* Error message */
+.event-popup-error {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #ffebee;
+  color: #d32f2f;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Confirmation dialog */
+.event-popup-confirm {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+}
+
+.event-popup-confirm p {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.event-popup-confirm-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.event-popup-confirm-cancel,
+.event-popup-confirm-delete {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.event-popup-confirm-cancel {
+  background-color: #f5f5f5;
+  color: #1a1a1a;
+}
+
+.event-popup-confirm-cancel:hover {
+  background-color: #e0e0e0;
+}
+
+.event-popup-confirm-delete {
+  background-color: #d32f2f;
+  color: white;
+}
+
+.event-popup-confirm-delete:hover {
+  background-color: #b71c1c;
 }
 
