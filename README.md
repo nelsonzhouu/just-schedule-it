@@ -75,8 +75,10 @@ The app uses Groq's Llama 3.1 model to parse your commands, then executes them o
 **Authentication & Security:**
 - Google OAuth 2.0 login flow with Calendar API scope
 - JWT sessions with httpOnly cookies (XSS-safe)
+- Secure cookie flag automatically enabled in production (FLASK_ENV-based)
+- Environment-based OAuth redirects (no hardcoded URLs)
 - Refresh tokens encrypted with Fernet before storage
-- Protected API endpoints and routes
+- Protected API endpoints and routes with rate limiting
 - User profile management
 - Automatic user creation on first login
 - Secure logout functionality
@@ -195,6 +197,7 @@ Edit `backend/.env` and fill in all values:
 # Flask Configuration
 FLASK_ENV=development
 PORT=5000
+FRONTEND_URL=http://localhost:5173
 CORS_ORIGINS=http://localhost:5173
 
 # Groq API - https://console.groq.com/
@@ -519,12 +522,13 @@ pytest
 You should see output like:
 ```
 ======================== test session starts ========================
-collected 53 items
+collected 65 items
 
-tests/test_auth.py .............                              [ 24%]
-tests/test_calendar_api.py ........................................  [100%]
+tests/test_auth.py .............                              [ 20%]
+tests/test_app.py .........                                    [ 33%]
+tests/test_calendar_api.py ..........................................  [100%]
 
-======================== 53 passed in 1.23s =========================
+======================== 65 passed in 0.74s =========================
 ```
 
 #### Run Tests with Verbose Output
@@ -581,7 +585,7 @@ Useful for debugging - stops immediately when a test fails.
 
 ### What's Being Tested
 
-**`tests/test_calendar_api.py` (40 tests):**
+**`tests/test_calendar_api.py` (45 tests):**
 
 1. **`parse_date_time()`** - Date and time parsing
    - Relative dates: "today", "tomorrow", "friday", "monday"
@@ -608,6 +612,26 @@ Useful for debugging - stops immediately when a test fails.
    - "dentist" finds "Dentist Appointment"
    - Case-insensitive matching
    - No match returns empty list
+
+6. **Event Notes and Reminders** - create_event() functionality
+   - Creating events with notes/descriptions
+   - Default 30-minute reminders
+   - Custom reminder times (e.g., 60 minutes)
+   - Reminder behavior with `reminder_minutes: None` (uses default)
+   - Explicitly disabling reminders with `no_reminder: True`
+
+**`tests/test_app.py` (8 tests):**
+
+1. **Groq AI Parsing** - Natural language command parsing
+   - Parsing notes from commands ("note: bring laptop")
+   - Parsing custom reminders ("remind me 1 hour before")
+   - Handling "no reminder" requests
+   - update_note action handling
+
+2. **Conversational Responses** - User-friendly message generation
+   - Responses mention reminder times when set
+   - Responses don't mention reminders when disabled
+   - Friendly confirmation messages
 
 **`tests/test_auth.py` (13 tests):**
 
@@ -697,6 +721,8 @@ Tests are located in `backend/tests/`. To add new tests:
 
 - ✅ **No secrets in code** - All credentials in `.env` files (never committed)
 - ✅ **httpOnly cookies** - JWTs protected from XSS attacks
+- ✅ **Secure cookies in production** - Cookie secure flag automatically enabled based on FLASK_ENV
+- ✅ **Environment-based redirects** - OAuth redirects use FRONTEND_URL environment variable (no hardcoded URLs)
 - ✅ **Encrypted tokens** - Refresh tokens encrypted with Fernet before database storage
 - ✅ **CORS configured** - Cross-origin requests restricted to allowed origins
 - ✅ **Input validation** - All endpoints validate and sanitize input:
@@ -706,12 +732,13 @@ Tests are located in `backend/tests/`. To add new tests:
   - `/api/auth/login`: 10 requests/minute per IP
   - `/api/message`: 30 requests/minute per user
   - `/api/calendar/events`: 60 requests/minute per user
+- ✅ **No sensitive data logging** - Removed debug statements that could log user data
 - ✅ **Parameterized queries** - Supabase SDK prevents SQL injection
 - ✅ **Service role key** - Backend uses admin key, never exposed to frontend
 - ✅ **Protected routes** - Authentication required for dashboard and API access
 - ✅ **Timezone-aware operations** - All calendar operations use user's local timezone
 - ✅ **Session management** - Flask sessions for multi-step confirmations
-- ✅ **Profile picture fallback** - Colored circle with user initials if image fails
+- ✅ **OAuth credentials secured** - credentials.json and token.pickle in .gitignore
 
 ---
 
@@ -772,15 +799,45 @@ Tests are located in `backend/tests/`. To add new tests:
 - [x] Add security improvements:
   - [x] Rate limiting (Flask-Limiter)
   - [x] Input validation (message length, ISO datetime format)
+  - [x] Environment-based cookie security (secure flag conditional on FLASK_ENV)
+  - [x] Configurable OAuth redirects (FRONTEND_URL environment variable)
+  - [x] Removed sensitive data logging (debug print statements)
 
 ### Phase 4 (Next)
 - [ ] Deploy backend to Render
 - [ ] Deploy frontend to Vercel
-- [ ] Configure production environment variables
-- [ ] Set up production CORS and cookies
-- [ ] Update Google OAuth redirect URIs for production
-- [ ] Test end-to-end in production
+- [ ] Configure production environment variables:
+  - [ ] Set `FLASK_ENV=production` (enables secure cookies)
+  - [ ] Set `FRONTEND_URL=https://yourapp.vercel.app`
+  - [ ] Set `CORS_ORIGINS=https://yourapp.vercel.app`
+  - [ ] Update `GOOGLE_REDIRECT_URI=https://yourbackend.onrender.com/api/auth/callback`
+  - [ ] Generate new production `JWT_SECRET` and `ENCRYPTION_KEY`
+- [ ] Update Google OAuth redirect URIs for production in Google Cloud Console
+- [ ] Test end-to-end in production environment
 - [ ] Configure custom domain (optional)
+
+---
+
+## Production Deployment Notes
+
+### Critical Environment Variables for Production
+
+When deploying to production, ensure these environment variables are properly configured:
+
+**Backend (Render):**
+```bash
+FLASK_ENV=production          # Enables secure cookies, disables debug mode
+FRONTEND_URL=https://yourapp.vercel.app  # Your frontend domain
+CORS_ORIGINS=https://yourapp.vercel.app  # Allowed CORS origins
+GOOGLE_REDIRECT_URI=https://yourbackend.onrender.com/api/auth/callback
+```
+
+**Security Notes:**
+- Setting `FLASK_ENV=production` automatically enables:
+  - Secure cookie flag (requires HTTPS)
+  - Disables debug mode and detailed error pages
+- `FRONTEND_URL` controls OAuth redirects (no hardcoded localhost URLs)
+- Generate new secrets for production (don't reuse development keys)
 
 ---
 
