@@ -647,8 +647,8 @@ def handle_message():
     - Date and time information
     - Confidence score
 
-    Phase 3A: Authentication required (user must be logged in)
-    Phase 3C: Will use the parsed data to actually modify Google Calendar
+    This endpoint requires authentication (user must be logged in) and uses the
+    parsed data to modify the user's Google Calendar.
 
     Expected JSON payload:
     {
@@ -949,7 +949,7 @@ Output: {{"action": "update_note", "title": "dentist appointment", "date": "{nex
         # Parse the JSON string into a Python dictionary
         parsed_data = json.loads(response_content)
 
-        # PHASE 3C: Execute the parsed command on Google Calendar
+        # Execute the parsed command on Google Calendar
         # Now that we've parsed the user's intent, we execute the actual calendar operation
         execution_result = None
 

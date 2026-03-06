@@ -184,7 +184,8 @@ def refresh_access_token(refresh_token: str):
     This function exchanges a refresh token for a fresh access token, allowing
     us to make API calls on behalf of the user without requiring them to log in again.
 
-    This will be used in Phase 3C when we interact with the Google Calendar API.
+    This is used when interacting with the Google Calendar API to ensure we always
+    have a valid access token for authenticated requests.
 
     Args:
         refresh_token: Valid Google OAuth refresh token (stored encrypted in database)

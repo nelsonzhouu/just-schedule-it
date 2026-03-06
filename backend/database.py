@@ -265,7 +265,7 @@ def get_refresh_token(user_id: str):
     Retrieve and decrypt a user's Google refresh token.
 
     This is called when we need to make Google Calendar API requests on behalf
-    of the user (Phase 3C). The decrypted token is used to get a fresh access token.
+    of the user. The decrypted token is used to get a fresh access token.
 
     SECURITY NOTE: The decrypted token is only used server-side and is NEVER
     sent to the frontend or logged. It stays in memory briefly for the API call.

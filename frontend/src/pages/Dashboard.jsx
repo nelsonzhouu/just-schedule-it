@@ -5,14 +5,14 @@
  *
  * FEATURES:
  * - Header with user profile and logout button
- * - Calendar placeholder (Phase 3C will implement real Google Calendar integration)
+ * - Interactive Google Calendar view with full event management
  * - Chat interface for natural language commands
  * - Session-based chat history (stored in React state, clears on refresh)
  *
  * LAYOUT:
  * - Header at top (fixed height)
  * - Two-column layout below header:
- *   - Left: Calendar view (placeholder for now)
+ *   - Left: Calendar view with real Google Calendar integration
  *   - Right: Chat interface with message history and input
  *
  * DATA FLOW:
