@@ -36,6 +36,11 @@ class Config:
     # Default 5000 for development, but Render/Heroku will set this in production
     PORT = int(os.getenv('PORT', 5000))
 
+    # Frontend URL for OAuth redirects and CORS
+    # Development: http://localhost:5173
+    # Production: https://yourapp.vercel.app
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+
     # ==================== CORS Settings ====================
 
     # Allowed origins for cross-origin requests

@@ -502,16 +502,15 @@ def auth_callback():
 
         # STEP 7: Set the JWT in an httpOnly cookie and redirect to frontend
         # httpOnly=True: JavaScript can't access this cookie (prevents XSS attacks)
-        # secure=False: For development (localhost uses HTTP not HTTPS)
-        #               Set to True in production for security
+        # secure: Automatically set to True in production (HTTPS), False in development (HTTP)
         # samesite='Lax': Provides CSRF protection while allowing OAuth redirects
         # max_age: Cookie expires when JWT expires (1 hour by default)
-        response = make_response(redirect('http://localhost:5173/dashboard'))
+        response = make_response(redirect(f'{Config.FRONTEND_URL}/dashboard'))
         response.set_cookie(
             'jwt_token',                    # Cookie name
             value=jwt_token,                # The actual JWT
             httponly=True,                  # Can't be accessed by JavaScript
-            secure=False,                   # Set to True in production (HTTPS)
+            secure=Config.FLASK_ENV == 'production',  # True in production (HTTPS), False in development
             samesite='Lax',                 # CSRF protection
             max_age=Config.JWT_EXPIRATION   # Expires with the JWT
         )
@@ -526,7 +525,7 @@ def auth_callback():
 
         # Redirect to frontend homepage with error parameter
         # Frontend can check for ?error=auth_failed and show a message
-        return redirect('http://localhost:5173?error=auth_failed')
+        return redirect(f'{Config.FRONTEND_URL}?error=auth_failed')
 
 
 @app.route('/api/auth/user', methods=['GET'])
@@ -1046,9 +1045,8 @@ Output: {{"action": "update_note", "title": "dentist appointment", "date": "{nex
 
     except json.JSONDecodeError as e:
         # This should rarely happen because response_format={"type": "json_object"}
-        # guarantees valid JSON. But if it does happen, log details for debugging.
+        # guarantees valid JSON. But if it does happen, log the error.
         print(f"JSON parsing error: {str(e)}")
-        print(f"Response content: {response_content}")
         return jsonify({
             'success': False,
             'error': 'Failed to parse AI response'
