@@ -742,6 +742,12 @@ Tests are located in `backend/tests/`. To add new tests:
 
 ---
 
+## Privacy
+
+**JustScheduleIt** respects your privacy and handles your Google Calendar data with care. The app accesses your Google Calendar data only to perform the actions you explicitly request through natural language commands. No calendar event data is stored in our database or logged to any external services. Only encrypted refresh tokens are stored in the database to maintain your authenticated session. You can revoke the app's access to your Google Calendar at any time by visiting your [Google Account Permissions](https://myaccount.google.com/permissions) page.
+
+---
+
 ## Development Phases
 
 ### Phase 1 ✅ Complete
