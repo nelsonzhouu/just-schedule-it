@@ -366,32 +366,127 @@ def generate_conversational_response(action, parsed_data, result):
     elif action == 'list':
         events = result.get('events', [])
         date_str = parsed_data.get('date')
+        date_lower = date_str.lower().strip() if date_str else ''
+
+        # Determine query type
+        is_week_query = date_lower in ['this week', 'next week']
+        is_month_query = date_lower in ['this month', 'next month']
+        is_multiday_query = is_week_query or is_month_query
 
         if not events:
-            date_formatted = format_date_conversational(date_str) if date_str else 'that time'
-            return f"You have nothing scheduled for {date_formatted}"
-
-        # Format the header
-        date_formatted = format_date_conversational(date_str) if date_str else 'your schedule'
-        response = f"Here's what you have on {date_formatted}:\n\n"
-
-        # Add each event
-        for event in events:
-            title = event.get('title', 'Untitled')
-            time_range = event.get('time', '')
-
-            if time_range:
-                # Use the nicely formatted time range from backend
-                response += f"• {time_range} - {title}\n"
+            # Format empty response based on query type
+            if is_week_query:
+                return f"You have nothing scheduled {date_lower}"
+            elif is_month_query:
+                return f"You have nothing scheduled {date_lower}"
             else:
-                # Fallback: parse start time if time field not available
-                start = event.get('start', '')
-                if 'T' in start:
-                    time = format_time_conversational(start)
-                    response += f"• {time} - {title}\n"
+                date_formatted = format_date_conversational(date_str) if date_str else 'that time'
+                return f"You have nothing scheduled for {date_formatted}"
+
+        # Format the header based on query type
+        if is_week_query:
+            # Calculate week range for display
+            from datetime import datetime, timedelta
+            now = datetime.now()
+            days_since_sunday = now.isoweekday() % 7
+            week_start = now - timedelta(days=days_since_sunday)
+
+            if date_lower == 'next week':
+                week_start = week_start + timedelta(days=7)
+
+            week_end = week_start + timedelta(days=6)
+
+            # Format week range - handle cross-month weeks
+            if week_start.month == week_end.month:
+                # Same month: "March 1-7, 2026"
+                week_range = f"{week_start.strftime('%B')} {week_start.day}-{week_end.day}, {week_start.year}"
+            else:
+                # Different months: "March 30 - April 5, 2026"
+                week_range = f"{week_start.strftime('%B')} {week_start.day} - {week_end.strftime('%B')} {week_end.day}, {week_start.year}"
+
+            response = f"Here's what you have {date_lower} ({week_range}):\n\n"
+
+        elif is_month_query:
+            # Get month name and year
+            from datetime import datetime
+            now = datetime.now()
+
+            if date_lower == 'this month':
+                target_month = now.month
+                target_year = now.year
+            else:  # next month
+                if now.month == 12:
+                    target_month = 1
+                    target_year = now.year + 1
                 else:
-                    # All-day event
-                    response += f"• {title}\n"
+                    target_month = now.month + 1
+                    target_year = now.year
+
+            from datetime import date
+            month_name = date(target_year, target_month, 1).strftime('%B')
+            response = f"Here's what you have in {month_name} {target_year}:\n\n"
+
+        else:
+            # Single day query
+            date_formatted = format_date_conversational(date_str) if date_str else 'your schedule'
+            response = f"Here's what you have on {date_formatted}:\n\n"
+
+        # Format events based on query type
+        if is_multiday_query:
+            # Group events by date
+            from collections import defaultdict
+            from datetime import datetime
+
+            events_by_date = defaultdict(list)
+
+            for event in events:
+                start = event.get('start', '')
+                # Extract date from ISO datetime string
+                if 'T' in start:
+                    event_date = datetime.fromisoformat(start.replace('Z', '+00:00')).date()
+                else:
+                    # All-day event - parse just the date
+                    event_date = datetime.fromisoformat(start).date()
+
+                events_by_date[event_date].append(event)
+
+            # Sort dates and format output
+            for event_date in sorted(events_by_date.keys()):
+                # Format date as "Friday, March 6th"
+                day_name = event_date.strftime('%A')
+                date_formatted = format_date_conversational(event_date.isoformat())
+                response += f"• {day_name}, {date_formatted}\n"
+
+                # Add events for this date
+                for event in events_by_date[event_date]:
+                    title = event.get('title', 'Untitled')
+                    time_range = event.get('time', '')
+
+                    if time_range:
+                        response += f"  - {time_range} - {title}\n"
+                    else:
+                        # All-day event
+                        response += f"  - {title}\n"
+
+                response += "\n"
+        else:
+            # Single day - list events without date grouping
+            for event in events:
+                title = event.get('title', 'Untitled')
+                time_range = event.get('time', '')
+
+                if time_range:
+                    # Use the nicely formatted time range from backend
+                    response += f"• {time_range} - {title}\n"
+                else:
+                    # Fallback: parse start time if time field not available
+                    start = event.get('start', '')
+                    if 'T' in start:
+                        time = format_time_conversational(start)
+                        response += f"• {time} - {title}\n"
+                    else:
+                        # All-day event
+                        response += f"• {title}\n"
 
         return response.strip()
 
@@ -852,11 +947,31 @@ Rules:
    - Duration in minutes: "30 minute call at 2pm" → time: "14:00", end_time: "14:30"
    - No duration specified → end_time: null (defaults to 1 hour)
 6. For move actions, extract both original date/time/end_time and new date/time/end_time
-7. For list actions, determine the date range they're asking about
+7. For list actions, determine the date range they're asking about:
+   - IMPORTANT: For time period queries, pass them through AS-IS in the date field
+   - Time period keywords that should be passed through exactly:
+     * "this week" → date: "this week"
+     * "next week" → date: "next week"
+     * "this month" → date: "this month"
+     * "next month" → date: "next month"
+   - For specific days, use the standard date format (e.g., "Friday" → "{next_friday}")
+   - For "today" and "tomorrow", use "{today}" and "{tomorrow}"
 8. Parse notes/descriptions:
-   - Look for keywords: "note:", "notes:", "description:", "reminder:", "bring", "don't forget"
-   - Example: "meeting tomorrow, note: bring laptop" → note: "bring laptop"
-   - Example: "call with John, don't forget the documents" → note: "don't forget the documents"
+   - IMPORTANT: Look for note keywords and extract everything after them as the note text
+   - Note keyword patterns (extract text after these):
+     * "note:" or "note " (with or without colon)
+     * "notes:" or "notes "
+     * "with note:" or "with note "
+     * "add note:" or "add note "
+     * "description:"
+   - Also extract implicit notes from phrases: "bring", "don't forget", "remember to"
+   - Examples:
+     * "meeting tomorrow at 3pm, note: bring laptop" → note: "bring laptop"
+     * "meeting tomorrow at 3pm, note bring laptop" → note: "bring laptop" (no colon)
+     * "meeting tomorrow at 3pm with note: bring laptop" → note: "bring laptop"
+     * "meeting tomorrow at 3pm add note: bring laptop" → note: "bring laptop"
+     * "meeting tomorrow at 3pm, notes: bring laptop and charger" → note: "bring laptop and charger"
+     * "call with John, don't forget the documents" → note: "don't forget the documents"
 9. Parse reminders and no_reminder:
    - IMPORTANT: Set no_reminder field based on explicit "no reminder" phrases
    - If user explicitly says "no reminder" phrases, set no_reminder: true:
@@ -869,7 +984,11 @@ Rules:
    - Parse custom reminder times: "remind me X minutes/hours before", "X minute reminder", "reminder X minutes"
    - If custom time specified, set reminder_minutes to that value (convert hours to minutes: "1 hour" → 60)
    - If no custom time specified, set reminder_minutes: null (will default to 30 minutes unless no_reminder is true)
-10. For update_note actions, extract the event to update and the note text
+10. For update_note actions:
+   - IMPORTANT: If user says "delete note", "remove note", "clear note", "delete the note", "remove the note", "clear the note" → set action to "update_note" with note: "" (empty string)
+   - These are NOT delete event actions - they are update_note actions to clear the description
+   - For adding/updating notes: extract the event to update and the note text
+   - For clearing notes: set note to empty string ""
 11. Set confidence lower if the command is ambiguous
 12. Extract event titles/descriptions from context
 13. Return ONLY the JSON object, no other text
@@ -896,8 +1015,32 @@ Output: {{"action": "move", "title": "2pm meeting", "date": "{today}", "time": "
 Input: "what do I have on Friday?"
 Output: {{"action": "list", "title": "events", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
+Input: "what do I have this week?"
+Output: {{"action": "list", "title": "events", "date": "this week", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "show me my schedule for next week"
+Output: {{"action": "list", "title": "events", "date": "next week", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "what's on my calendar this month?"
+Output: {{"action": "list", "title": "events", "date": "this month", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "list events for next month"
+Output: {{"action": "list", "title": "events", "date": "next month", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
 Input: "schedule a meeting tomorrow at 3pm, note: bring laptop"
 Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "schedule a meeting tomorrow at 2pm, note bring laptop"
+Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "schedule a meeting tomorrow at 2pm with note: bring laptop and charger"
+Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop and charger", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "schedule a meeting tomorrow at 2pm add note: bring presentation slides"
+Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring presentation slides", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "schedule a meeting tomorrow at 2pm, notes: review documents first"
+Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "review documents first", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "remind me 1 hour before my dentist appointment tomorrow at 2pm"
 Output: {{"action": "create", "title": "dentist appointment", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": 60, "confidence": 0.90}}
@@ -918,7 +1061,13 @@ Input: "add a note to my meeting tomorrow: call John first"
 Output: {{"action": "update_note", "title": "meeting", "date": "{tomorrow}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "call John first", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
 
 Input: "update my dentist appointment Friday with note: bring insurance card"
-Output: {{"action": "update_note", "title": "dentist appointment", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring insurance card", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}"""
+Output: {{"action": "update_note", "title": "dentist appointment", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring insurance card", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
+
+Input: "delete the note on my meeting tomorrow"
+Output: {{"action": "update_note", "title": "meeting", "date": "{tomorrow}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
+
+Input: "remove the note from my dentist appointment"
+Output: {{"action": "update_note", "title": "dentist appointment", "date": null, "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}"""
 
         # Call the Groq API to parse the natural language command
         # We use Llama 3.1 8B Instant - it's fast and accurate for structured tasks

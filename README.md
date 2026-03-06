@@ -19,12 +19,13 @@ Currently in **Phase 3C Complete**: Full Google Calendar integration with natura
 **JustScheduleIt** is an AI-powered calendar assistant that lets you manage your Google Calendar using natural language. Instead of clicking through forms, just type what you want:
 
 - **Create events:** "schedule a 30 minute standup at 9am tomorrow"
-- **Add notes:** "schedule a meeting tomorrow at 3pm, note: bring laptop"
+- **Add notes:** "schedule a meeting tomorrow at 3pm, note: bring laptop" or "with note: bring laptop"
 - **Set reminders:** "remind me 1 hour before my dentist appointment tomorrow"
 - **Delete events:** "cancel my meeting on Friday at 3pm" or click the trash icon in the event popup
 - **Reschedule events:** "move my dentist appointment to next Tuesday at 2pm"
 - **Update notes:** "add a note to my meeting tomorrow: call John first"
-- **List events:** "what do I have on Monday?"
+- **Clear notes:** "delete the note on my meeting tomorrow"
+- **List events:** "what do I have on Monday?" or "show my calendar this week" or "what's on next month?"
 
 The app uses Groq's Llama 3.1 model to parse your commands, then executes them on your real Google Calendar. View your calendar in a beautiful week view and see changes happen in real-time.
 
@@ -39,7 +40,10 @@ The app uses Groq's Llama 3.1 model to parse your commands, then executes them o
 - Support for 5 actions: **create**, **delete**, **move**, **update_note**, **list**
 - Intelligent date/time parsing (relative dates like "tomorrow", "next Friday")
 - Duration parsing ("30 minute meeting", "2 hour call", "from 1pm to 3pm")
-- **Event notes/descriptions** ("schedule a meeting tomorrow, note: bring laptop")
+- **Event notes/descriptions** with flexible syntax:
+  - "note: bring laptop", "note bring laptop" (no colon)
+  - "with note: bring laptop", "add note: bring laptop", "notes: bring laptop"
+- **Clear notes** ("delete the note on my meeting tomorrow")
 - **Custom reminders** ("remind me 1 hour before my dentist appointment")
 - **No reminder option** ("schedule a meeting Friday without a reminder")
 - Default 30-minute reminder for all events unless explicitly disabled
@@ -56,7 +60,14 @@ The app uses Groq's Llama 3.1 model to parse your commands, then executes them o
 - Explicitly disable reminders when requested
 - Delete events with confirmation when multiple matches found
 - Move/reschedule events to new dates and times
-- List events for specific dates or date ranges
+- List events for specific dates, weeks, or months:
+  - Single day: "what do I have tomorrow?"
+  - Week ranges: "show my calendar this week" or "what's next week?"
+  - Month ranges: "what's on my calendar this month?" or "list events for next month"
+- Smart response formatting:
+  - Single day queries show simple event list
+  - Week/month queries group events by date with day names
+  - Week ranges show calculated date span (e.g., "March 1-7, 2026")
 - Timezone-aware operations (uses user's Google Calendar timezone)
 - Real-time calendar updates after each action
 - Automatic title capitalization
@@ -393,7 +404,10 @@ schedule a 2 hour workshop from 1pm to 3pm next Monday
 **Create Events with Notes:**
 ```
 schedule a meeting tomorrow at 3pm, note: bring laptop
-book a call with Sarah Friday at 2pm, note: discuss Q1 roadmap
+schedule a meeting tomorrow at 2pm note bring presentation slides
+book a call with Sarah Friday at 2pm with note: discuss Q1 roadmap
+schedule a team sync Monday at 10am add note: prepare quarterly review
+create a planning session Tuesday at 3pm, notes: review budget and timeline
 ```
 
 **Create Events with Custom Reminders:**
@@ -408,10 +422,13 @@ schedule a meeting Friday at 4pm without a reminder
 book lunch tomorrow at noon, no reminder
 ```
 
-**Add Notes to Existing Events:**
+**Add or Clear Notes on Existing Events:**
 ```
 add a note to my meeting tomorrow: call John first
 update my dentist appointment Friday with note: bring insurance card
+delete the note on my meeting tomorrow
+remove the note from my dentist appointment
+clear the note on my team sync
 ```
 
 **Delete Events:**
@@ -430,9 +447,20 @@ reschedule my dentist appointment to next Tuesday at 10am
 
 **List Events:**
 ```
+# Single day queries
 what do I have tomorrow?
 show my events on Friday
-what's on my calendar next week?
+what's on my calendar today?
+
+# Week queries (groups by date)
+what do I have this week?
+show my schedule for next week
+what's on my calendar this week?
+
+# Month queries (groups by date)
+what's on my calendar this month?
+list events for next month
+show me my schedule for this month
 ```
 
 **Expected Behavior:**
@@ -782,7 +810,8 @@ Tests are located in `backend/tests/`. To add new tests:
 - [x] Integrate Google Calendar API
 - [x] Implement calendar operations:
   - [x] Create events with custom duration support
-  - [x] Add event notes/descriptions
+  - [x] Add event notes/descriptions with flexible syntax (note:, with note:, add note:, notes:)
+  - [x] Clear notes from existing events
   - [x] Set custom reminders (minutes or hours before event)
   - [x] Disable reminders when explicitly requested
   - [x] Default 30-minute reminder for all events
@@ -790,6 +819,9 @@ Tests are located in `backend/tests/`. To add new tests:
   - [x] Delete events with fuzzy matching and confirmation
   - [x] Move/reschedule events with duration preservation
   - [x] List events with timezone awareness
+  - [x] Week range queries (this week, next week)
+  - [x] Month range queries (this month, next month)
+  - [x] Smart response formatting with date grouping for multi-day queries
 - [x] Display real calendar in dashboard (react-big-calendar)
 - [x] Execute parsed commands on actual Google Calendar
 - [x] Add conversational AI responses

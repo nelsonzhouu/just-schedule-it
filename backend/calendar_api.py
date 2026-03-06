@@ -972,7 +972,7 @@ def update_event_note(user_id: str, event_query: dict, note: str):
                 # Get the event
                 event = service.events().get(calendarId='primary', eventId=event_id).execute()
 
-                # Update the description
+                # Update the description (can be empty string to clear)
                 event['description'] = note
 
                 # Update the event
@@ -982,9 +982,15 @@ def update_event_note(user_id: str, event_query: dict, note: str):
                     body=event
                 ).execute()
 
+                # Generate appropriate message based on whether note was cleared or added
+                if note == "":
+                    message = f'Note cleared from "{updated_event.get("summary")}"'
+                else:
+                    message = f'Note added to "{updated_event.get("summary")}"'
+
                 return {
                     'success': True,
-                    'message': f'Note added to "{updated_event.get("summary")}"',
+                    'message': message,
                     'event': {
                         'id': updated_event['id'],
                         'title': updated_event.get('summary'),
@@ -1100,17 +1106,79 @@ def list_events(user_id: str, date_query: str = None, time_query: str = None):
 
         # Determine time range
         if date_query:
-            # List events for specific day IN USER'S TIMEZONE
-            start_dt, _ = parse_date_time(date_query)
-            start_dt_obj = datetime.fromisoformat(start_dt)
+            date_lower = date_query.lower().strip()
 
-            # Create timezone-aware datetimes for start and end of day in user's timezone
-            day_start = tz.localize(start_dt_obj.replace(hour=0, minute=0, second=0))
-            day_end = tz.localize(start_dt_obj.replace(hour=23, minute=59, second=59))
+            # Handle time period queries (week/month ranges)
+            if date_lower == 'this week' or date_lower == 'next week':
+                now = datetime.now(tz)
 
-            # Convert to RFC3339 format for Google Calendar API
-            time_min = day_start.isoformat()
-            time_max = day_end.isoformat()
+                # Calculate start of current week (Sunday)
+                # isoweekday(): Monday=1, Tuesday=2, ..., Sunday=7
+                # days_since_sunday: Monday=1, Tuesday=2, ..., Saturday=6, Sunday=0
+                days_since_sunday = now.isoweekday() % 7
+                week_start = now - timedelta(days=days_since_sunday)
+
+                # If query is for "next week", add 7 days
+                if date_lower == 'next week':
+                    week_start = week_start + timedelta(days=7)
+
+                # Set to start of day (Sunday 00:00:00)
+                week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+                # Calculate end of week (Saturday 23:59:59)
+                week_end = week_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
+
+                # Convert to RFC3339 format for Google Calendar API
+                time_min = week_start.isoformat()
+                time_max = week_end.isoformat()
+
+            elif date_lower == 'this month' or date_lower == 'next month':
+                now = datetime.now(tz)
+
+                # Determine the target month
+                if date_lower == 'this month':
+                    target_year = now.year
+                    target_month = now.month
+                else:  # next month
+                    # Handle year rollover
+                    if now.month == 12:
+                        target_year = now.year + 1
+                        target_month = 1
+                    else:
+                        target_year = now.year
+                        target_month = now.month + 1
+
+                # Calculate first day of month (00:00:00)
+                month_start = tz.localize(datetime(target_year, target_month, 1, 0, 0, 0))
+
+                # Calculate last day of month (23:59:59)
+                # Get first day of next month, then subtract 1 second
+                if target_month == 12:
+                    next_month_year = target_year + 1
+                    next_month = 1
+                else:
+                    next_month_year = target_year
+                    next_month = target_month + 1
+
+                first_of_next_month = tz.localize(datetime(next_month_year, next_month, 1, 0, 0, 0))
+                month_end = first_of_next_month - timedelta(seconds=1)
+
+                # Convert to RFC3339 format for Google Calendar API
+                time_min = month_start.isoformat()
+                time_max = month_end.isoformat()
+
+            else:
+                # List events for specific day IN USER'S TIMEZONE
+                start_dt, _ = parse_date_time(date_query)
+                start_dt_obj = datetime.fromisoformat(start_dt)
+
+                # Create timezone-aware datetimes for start and end of day in user's timezone
+                day_start = tz.localize(start_dt_obj.replace(hour=0, minute=0, second=0))
+                day_end = tz.localize(start_dt_obj.replace(hour=23, minute=59, second=59))
+
+                # Convert to RFC3339 format for Google Calendar API
+                time_min = day_start.isoformat()
+                time_max = day_end.isoformat()
         else:
             # List next 7 days
             now = datetime.now(tz)
