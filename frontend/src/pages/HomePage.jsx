@@ -31,7 +31,7 @@ function HomePage() {
 
         {/* Login button - navigates to backend OAuth flow */}
         {/* Using <a> tag instead of button to ensure full page navigation */}
-        <a href="/api/auth/login" className="header-login-btn">
+        <a href={`${import.meta.env.VITE_API_URL || ''}/api/auth/login`} className="header-login-btn">
           {/* Google "G" logo SVG */}
           <svg className="google-icon" viewBox="0 0 24 24" width="18" height="18">
             <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
@@ -60,7 +60,7 @@ function HomePage() {
           </p>
 
           {/* Get Started button - navigates to backend OAuth flow */}
-          <a href="/api/auth/login" className="hero-cta-btn">
+          <a href={`${import.meta.env.VITE_API_URL || ''}/api/auth/login`} className="hero-cta-btn">
             Get Started
           </a>
         </div>
