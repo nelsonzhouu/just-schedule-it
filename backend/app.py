@@ -945,8 +945,15 @@ Required JSON structure:
 }}
 
 Rules:
-1. Convert relative dates (tomorrow, next Friday, etc.) to YYYY-MM-DD format based on today's date ({today})
-2. IMPORTANT: When no year is specified, always use the current year ({current_year}), NOT previous years
+1. IMPORTANT: Pass relative date keywords through AS-IS - DO NOT convert to specific dates:
+   - "today" → date: "today" (NOT "{today}")
+   - "tomorrow" → date: "tomorrow" (NOT a specific date like "2026-03-08")
+   - "yesterday" → date: "yesterday"
+   - Day names: "monday", "tuesday", "friday", etc. → pass as-is (NOT specific dates)
+   - "next friday", "next monday", etc. → pass as-is
+   - Week/month periods: "this week", "next week", "this month", "next month" → pass as-is
+   - ONLY convert to YYYY-MM-DD when user gives explicit dates: "March 10th", "3/10/2026", "March 10, 2026"
+2. IMPORTANT: When user gives explicit dates without year, use current year ({current_year})
 3. Convert 12-hour time to 24-hour format (3pm → 15:00)
 4. If time is not mentioned, set time to null
 5. Parse end times and durations:
@@ -955,15 +962,7 @@ Rules:
    - Duration in minutes: "30 minute call at 2pm" → time: "14:00", end_time: "14:30"
    - No duration specified → end_time: null (defaults to 1 hour)
 6. For move actions, extract both original date/time/end_time and new date/time/end_time
-7. For list actions, determine the date range they're asking about:
-   - IMPORTANT: For time period queries, pass them through AS-IS in the date field
-   - Time period keywords that should be passed through exactly:
-     * "this week" → date: "this week"
-     * "next week" → date: "next week"
-     * "this month" → date: "this month"
-     * "next month" → date: "next month"
-   - For specific days, use the standard date format (e.g., "Friday" → "{next_friday}")
-   - For "today" and "tomorrow", use "{today}" and "{tomorrow}"
+7. For list actions, pass date keywords through AS-IS (see Rule 1)
 8. Parse notes/descriptions:
    - IMPORTANT: Look for note keywords and extract everything after them as the note text
    - Note keyword patterns (extract text after these):
@@ -1003,25 +1002,28 @@ Rules:
 
 Examples:
 Input: "schedule a meeting with John tomorrow at 3pm"
-Output: {{"action": "create", "title": "meeting with John", "date": "{tomorrow}", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "meeting with John", "date": "tomorrow", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "book a conference room from 1pm to 3pm tomorrow"
-Output: {{"action": "create", "title": "conference room", "date": "{tomorrow}", "time": "13:00", "end_time": "15:00", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "conference room", "date": "tomorrow", "time": "13:00", "end_time": "15:00", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "schedule a 2 hour meeting at 3pm Friday"
-Output: {{"action": "create", "title": "meeting", "date": "{next_friday}", "time": "15:00", "end_time": "17:00", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
+Output: {{"action": "create", "title": "meeting", "date": "friday", "time": "15:00", "end_time": "17:00", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
 
 Input: "30 minute call with Sarah at 2pm tomorrow"
-Output: {{"action": "create", "title": "call with Sarah", "date": "{tomorrow}", "time": "14:00", "end_time": "14:30", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "call with Sarah", "date": "tomorrow", "time": "14:00", "end_time": "14:30", "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "cancel my dentist appointment Friday"
-Output: {{"action": "delete", "title": "dentist appointment", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
+Output: {{"action": "delete", "title": "dentist appointment", "date": "friday", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
 
 Input: "move my 2pm meeting to Thursday at 4pm"
-Output: {{"action": "move", "title": "2pm meeting", "date": "{today}", "time": "14:00", "end_time": null, "new_date": "{next_thursday}", "new_time": "16:00", "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
+Output: {{"action": "move", "title": "2pm meeting", "date": "today", "time": "14:00", "end_time": null, "new_date": "thursday", "new_time": "16:00", "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
 
 Input: "what do I have on Friday?"
-Output: {{"action": "list", "title": "events", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "list", "title": "events", "date": "friday", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+
+Input: "schedule a meeting on March 10th at 2pm"
+Output: {{"action": "create", "title": "meeting", "date": "{current_year}-03-10", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "what do I have this week?"
 Output: {{"action": "list", "title": "events", "date": "this week", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
@@ -1036,43 +1038,43 @@ Input: "list events for next month"
 Output: {{"action": "list", "title": "events", "date": "next month", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "schedule a meeting tomorrow at 3pm, note: bring laptop"
-Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "meeting", "date": "tomorrow", "time": "15:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "schedule a meeting tomorrow at 2pm, note bring laptop"
-Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "meeting", "date": "tomorrow", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "schedule a meeting tomorrow at 2pm with note: bring laptop and charger"
-Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop and charger", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "meeting", "date": "tomorrow", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring laptop and charger", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "schedule a meeting tomorrow at 2pm add note: bring presentation slides"
-Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring presentation slides", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "meeting", "date": "tomorrow", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring presentation slides", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "schedule a meeting tomorrow at 2pm, notes: review documents first"
-Output: {{"action": "create", "title": "meeting", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "review documents first", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
+Output: {{"action": "create", "title": "meeting", "date": "tomorrow", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "review documents first", "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
 Input: "remind me 1 hour before my dentist appointment tomorrow at 2pm"
-Output: {{"action": "create", "title": "dentist appointment", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": 60, "confidence": 0.90}}
+Output: {{"action": "create", "title": "dentist appointment", "date": "tomorrow", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": 60, "confidence": 0.90}}
 
 Input: "schedule a meeting Friday at 4pm without a reminder"
-Output: {{"action": "create", "title": "meeting", "date": "{next_friday}", "time": "16:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
+Output: {{"action": "create", "title": "meeting", "date": "friday", "time": "16:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
 
 Input: "schedule a call tomorrow at 2pm, no reminder"
-Output: {{"action": "create", "title": "call", "date": "{tomorrow}", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
+Output: {{"action": "create", "title": "call", "date": "tomorrow", "time": "14:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
 
 Input: "book lunch Friday at noon, don't remind me"
-Output: {{"action": "create", "title": "lunch", "date": "{next_friday}", "time": "12:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
+Output: {{"action": "create", "title": "lunch", "date": "friday", "time": "12:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
 
 Input: "schedule gym session tomorrow at 6am, skip the reminder"
-Output: {{"action": "create", "title": "gym session", "date": "{tomorrow}", "time": "06:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
+Output: {{"action": "create", "title": "gym session", "date": "tomorrow", "time": "06:00", "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": true, "reminder_minutes": null, "confidence": 0.90}}
 
 Input: "add a note to my meeting tomorrow: call John first"
-Output: {{"action": "update_note", "title": "meeting", "date": "{tomorrow}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "call John first", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
+Output: {{"action": "update_note", "title": "meeting", "date": "tomorrow", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "call John first", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
 
 Input: "update my dentist appointment Friday with note: bring insurance card"
-Output: {{"action": "update_note", "title": "dentist appointment", "date": "{next_friday}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring insurance card", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
+Output: {{"action": "update_note", "title": "dentist appointment", "date": "friday", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "bring insurance card", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
 
 Input: "delete the note on my meeting tomorrow"
-Output: {{"action": "update_note", "title": "meeting", "date": "{tomorrow}", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
+Output: {{"action": "update_note", "title": "meeting", "date": "tomorrow", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
 
 Input: "remove the note from my dentist appointment"
 Output: {{"action": "update_note", "title": "dentist appointment", "date": null, "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": "", "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}"""
