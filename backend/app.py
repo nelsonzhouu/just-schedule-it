@@ -1019,6 +1019,15 @@ Output: {{"action": "delete", "title": "dentist appointment", "date": "friday", 
 Input: "move my 2pm meeting to Thursday at 4pm"
 Output: {{"action": "move", "title": "2pm meeting", "date": "today", "time": "14:00", "end_time": null, "new_date": "thursday", "new_time": "16:00", "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
 
+Input: "move my dentist appointment to next Friday at 5pm"
+Output: {{"action": "move", "title": "dentist appointment", "date": null, "time": null, "end_time": null, "new_date": "next friday", "new_time": "17:00", "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
+
+Input: "reschedule my meeting from tomorrow to next Monday"
+Output: {{"action": "move", "title": "meeting", "date": "tomorrow", "time": null, "end_time": null, "new_date": "next monday", "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.85}}
+
+Input: "move my call to tomorrow at 3pm"
+Output: {{"action": "move", "title": "call", "date": null, "time": null, "end_time": null, "new_date": "tomorrow", "new_time": "15:00", "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.90}}
+
 Input: "what do I have on Friday?"
 Output: {{"action": "list", "title": "events", "date": "friday", "time": null, "end_time": null, "new_date": null, "new_time": null, "new_end_time": null, "note": null, "no_reminder": false, "reminder_minutes": null, "confidence": 0.95}}
 
