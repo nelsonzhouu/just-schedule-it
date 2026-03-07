@@ -18,10 +18,11 @@ import axios from 'axios'
 
 // Create axios instance with base configuration
 // baseURL uses environment variable for production, falls back to '/api' for development
-// Development: Vite proxy forwards /api to http://localhost:5000
-// Production: VITE_API_URL points to deployed backend (e.g., https://yourapp.onrender.com)
+// Development: No VITE_API_URL set → baseURL = '/api' (Vite proxy forwards to localhost:5000)
+// Production: VITE_API_URL set (e.g., 'https://yourapp.onrender.com') → baseURL = 'https://yourapp.onrender.com/api'
+// Note: We append '/api' to the production URL to match the backend route structure
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
 
   // CRITICAL: withCredentials must be true for httpOnly cookies to work
   // Without this, the browser won't send the jwt_token cookie with requests
