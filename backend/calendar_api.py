@@ -145,17 +145,24 @@ def parse_date_time(date_str: str, time_str: str = None, user_timezone: str = No
     if user_timezone:
         tz = pytz.timezone(user_timezone)
         now = datetime.now(tz)
+        # DEBUG: Log timezone-aware current time
+        print(f"[DEBUG parse_date_time] user_timezone: {user_timezone}")
+        print(f"[DEBUG parse_date_time] datetime.now(tz): {now}")
+        print(f"[DEBUG parse_date_time] now.tzinfo: {now.tzinfo}")
     else:
         # Fallback to server time (not recommended, kept for backward compatibility)
         now = datetime.now()
+        print(f"[DEBUG parse_date_time] No user_timezone provided, using server time: {now}")
 
     # Parse the date component
     date_lower = date_str.lower().strip()
 
     if date_lower == "today":
         event_date = now
+        print(f"[DEBUG parse_date_time] 'today' → event_date: {event_date}")
     elif date_lower == "tomorrow":
         event_date = now + timedelta(days=1)
+        print(f"[DEBUG parse_date_time] 'tomorrow' → event_date: {event_date}")
     elif date_lower == "yesterday":
         event_date = now - timedelta(days=1)
     elif date_lower in ["monday", "mon"]:
@@ -213,10 +220,15 @@ def parse_date_time(date_str: str, time_str: str = None, user_timezone: str = No
 
     # Return in ISO format (YYYY-MM-DDTHH:MM:SS)
     # We don't include timezone suffix - Calendar API will use user's default calendar timezone
-    return (
+    result = (
         start_datetime.strftime('%Y-%m-%dT%H:%M:%S'),
         end_datetime.strftime('%Y-%m-%dT%H:%M:%S')
     )
+
+    # DEBUG: Log final result
+    print(f"[DEBUG parse_date_time] Returning: start={result[0]}, end={result[1]}")
+
+    return result
 
 
 # ==================== Helper Functions ====================
@@ -476,8 +488,15 @@ def create_event(user_id: str, event_data: dict):
         time_str = event_data.get('time')
         end_time_str = event_data.get('end_time')
 
+        # DEBUG: Log timezone and date query
+        print(f"[DEBUG create_event] user_timezone: {user_timezone}")
+        print(f"[DEBUG create_event] date_str: {date_str}, time_str: {time_str}")
+
         # Get start and default end (start + 1 hour)
         start_datetime, default_end_datetime = parse_date_time(date_str, time_str, user_timezone)
+
+        # DEBUG: Log parsed result
+        print(f"[DEBUG create_event] start_datetime after parse_date_time: {start_datetime}")
 
         # If end_time was provided, parse it and combine with date
         if end_time_str:
