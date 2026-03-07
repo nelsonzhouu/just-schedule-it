@@ -118,8 +118,14 @@ def parse_date_time(date_str: str, time_str: str = None, user_timezone: str = No
 
     Handles relative dates like:
     - "today", "tomorrow", "yesterday"
-    - Day names: "Monday", "Friday", etc.
+    - Day names: "Monday", "Friday", etc. (next occurrence of that day)
+    - "next [day]": "next Monday", "next Friday", etc. (the [day] of NEXT week)
     - Absolute dates: "2026-03-15", "March 15"
+
+    IMPORTANT: "next [day]" vs plain day name:
+    - "friday" when today is Thursday → tomorrow (this week's Friday)
+    - "next friday" when today is Thursday → next week's Friday (8 days away)
+    - "next friday" when today is Friday → next week's Friday (7 days away)
 
     Handles times like:
     - "3pm", "3:30pm", "15:00", "3:30"
@@ -158,6 +164,40 @@ def parse_date_time(date_str: str, time_str: str = None, user_timezone: str = No
         event_date = now + timedelta(days=1)
     elif date_lower == "yesterday":
         event_date = now - timedelta(days=1)
+    # Handle "next [day]" - means the [day] of NEXT week, not the upcoming occurrence
+    elif date_lower.startswith("next "):
+        day_name = date_lower[5:].strip()  # Remove "next " prefix
+
+        # Map day names to weekday numbers (Monday=0, Sunday=6)
+        day_map = {
+            "monday": 0, "mon": 0,
+            "tuesday": 1, "tue": 1,
+            "wednesday": 2, "wed": 2,
+            "thursday": 3, "thu": 3,
+            "friday": 4, "fri": 4,
+            "saturday": 5, "sat": 5,
+            "sunday": 6, "sun": 6
+        }
+
+        if day_name in day_map:
+            target_weekday = day_map[day_name]
+
+            # Calculate days until next Monday (start of next week)
+            # If today is Monday (0): (7-0)%7 = 0, but we want 7 (next Monday, not today)
+            # If today is Friday (4): (7-4)%7 = 3 (next Monday is 3 days away)
+            days_to_next_monday = (7 - now.weekday()) % 7
+            if days_to_next_monday == 0:
+                days_to_next_monday = 7  # If today is Monday, next Monday is 7 days away
+
+            # Add offset from next Monday to target day
+            total_days = days_to_next_monday + target_weekday
+            event_date = now + timedelta(days=total_days)
+        else:
+            # Unknown day name, try to parse as absolute date
+            try:
+                event_date = date_parser.parse(date_str)
+            except:
+                event_date = now
     elif date_lower in ["monday", "mon"]:
         event_date = now + timedelta(days=(0 - now.weekday()) % 7)
     elif date_lower in ["tuesday", "tue"]:
