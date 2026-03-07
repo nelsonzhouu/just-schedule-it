@@ -597,16 +597,19 @@ def auth_callback():
 
         # STEP 7: Set the JWT in an httpOnly cookie and redirect to frontend
         # httpOnly=True: JavaScript can't access this cookie (prevents XSS attacks)
-        # secure: Automatically set to True in production (HTTPS), False in development (HTTP)
-        # samesite='Lax': Provides CSRF protection while allowing OAuth redirects
+        # secure: True in production (required for SameSite=None and HTTPS)
+        # samesite='None': Required for cross-domain cookies (frontend and backend on different domains)
+        #   - In production: frontend is on Vercel, backend is on Render (different domains)
+        #   - In development: both are localhost (same domain), but 'None' still works
+        #   - When samesite='None', secure=True is REQUIRED by browsers
         # max_age: Cookie expires when JWT expires (1 hour by default)
         response = make_response(redirect(f'{Config.FRONTEND_URL}/dashboard'))
         response.set_cookie(
             'jwt_token',                    # Cookie name
             value=jwt_token,                # The actual JWT
             httponly=True,                  # Can't be accessed by JavaScript
-            secure=Config.FLASK_ENV == 'production',  # True in production (HTTPS), False in development
-            samesite='Lax',                 # CSRF protection
+            secure=True,                    # Required for SameSite=None (works in production HTTPS and localhost)
+            samesite='None',                # Required for cross-domain cookies
             max_age=Config.JWT_EXPIRATION   # Expires with the JWT
         )
 
@@ -707,8 +710,13 @@ def logout():
 
         # Delete the JWT cookie
         # This tells the browser to remove the jwt_token cookie
+        # IMPORTANT: Must use same secure and samesite settings as set_cookie for deletion to work
         # Future requests won't include the cookie, so @require_auth will fail
-        response.delete_cookie('jwt_token')
+        response.delete_cookie(
+            'jwt_token',
+            secure=True,      # Must match set_cookie settings
+            samesite='None'   # Must match set_cookie settings
+        )
 
         return response
 
