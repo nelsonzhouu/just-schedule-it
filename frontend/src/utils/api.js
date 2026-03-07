@@ -17,10 +17,11 @@
 import axios from 'axios'
 
 // Create axios instance with base configuration
-// baseURL: '/api' means all requests will be prefixed with /api
-// Example: api.get('/auth/user') becomes a request to /api/auth/user
+// baseURL uses environment variable for production, falls back to '/api' for development
+// Development: Vite proxy forwards /api to http://localhost:5000
+// Production: VITE_API_URL points to deployed backend (e.g., https://yourapp.onrender.com)
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 
   // CRITICAL: withCredentials must be true for httpOnly cookies to work
   // Without this, the browser won't send the jwt_token cookie with requests

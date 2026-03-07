@@ -30,6 +30,7 @@ google-api-python-client==2.114.0
 cryptography==42.0.0
 python-dateutil==2.8.2
 pytz==2024.1
+gunicorn==21.2.0
 
 # Testing dependencies
 pytest==8.0.0
