@@ -112,7 +112,7 @@ def get_user_timezone(user_id: str, service=None):
 
 # ==================== Date/Time Parsing ====================
 
-def parse_date_time(date_str: str, time_str: str = None):
+def parse_date_time(date_str: str, time_str: str = None, user_timezone: str = None):
     """
     Convert natural language dates/times to ISO format datetime strings.
 
@@ -128,17 +128,26 @@ def parse_date_time(date_str: str, time_str: str = None):
     Args:
         date_str: Date in natural language or ISO format
         time_str: Time in various formats (optional, defaults to 12:00pm)
+        user_timezone: User's timezone (e.g., "America/Los_Angeles") for calculating relative dates
+                      If None, uses server time (UTC in production) - NOT RECOMMENDED
 
     Returns:
         tuple: (start_datetime_str, end_datetime_str) in ISO format
                Event duration is 1 hour by default
 
     Example:
-        parse_date_time("tomorrow", "3pm")
+        parse_date_time("tomorrow", "3pm", "America/Los_Angeles")
         Returns: ("2026-02-28T15:00:00", "2026-02-28T16:00:00")
     """
-    # Get current date as starting point
-    now = datetime.now()
+    # Get current date as starting point IN USER'S TIMEZONE
+    # CRITICAL: Use user's timezone so "today"/"tomorrow" are correct for their location
+    # Without this, server UTC time is used, causing wrong dates when server and user are in different timezones
+    if user_timezone:
+        tz = pytz.timezone(user_timezone)
+        now = datetime.now(tz)
+    else:
+        # Fallback to server time (not recommended, kept for backward compatibility)
+        now = datetime.now()
 
     # Parse the date component
     date_lower = date_str.lower().strip()
@@ -296,7 +305,7 @@ def search_events(user_id: str, service, title: str = None, date_str: str = None
     # Determine time range to search
     if date_str:
         # Parse the date and search that entire day IN USER'S TIMEZONE
-        start_dt, end_dt = parse_date_time(date_str)
+        start_dt, end_dt = parse_date_time(date_str, user_timezone=user_timezone)
         # Convert to datetime object (naive)
         start_dt_obj = datetime.fromisoformat(start_dt)
 
@@ -468,13 +477,13 @@ def create_event(user_id: str, event_data: dict):
         end_time_str = event_data.get('end_time')
 
         # Get start and default end (start + 1 hour)
-        start_datetime, default_end_datetime = parse_date_time(date_str, time_str)
+        start_datetime, default_end_datetime = parse_date_time(date_str, time_str, user_timezone)
 
         # If end_time was provided, parse it and combine with date
         if end_time_str:
             # Parse the end time with the same date
             # Take the first value (the actual end time), not the second (end time + 1 hour)
-            custom_end_datetime, _ = parse_date_time(date_str, end_time_str)
+            custom_end_datetime, _ = parse_date_time(date_str, end_time_str, user_timezone)
             end_datetime = custom_end_datetime
         else:
             # Use default end time (start + 1 hour)
@@ -764,12 +773,12 @@ def move_event(user_id: str, event_query: dict, new_date: str, new_time: str = N
                 event = service.events().get(calendarId='primary', eventId=event_id).execute()
 
                 # Parse new date and time
-                new_start, default_new_end = parse_date_time(new_date, new_time)
+                new_start, default_new_end = parse_date_time(new_date, new_time, user_timezone)
 
                 # If new_end_time was provided, parse it and combine with new_date
                 if new_end_time:
                     # Take the first value (the actual end time), not the second (end time + 1 hour)
-                    custom_new_end, _ = parse_date_time(new_date, new_end_time)
+                    custom_new_end, _ = parse_date_time(new_date, new_end_time, user_timezone)
                     new_end = custom_new_end
                 else:
                     # Use default end time (start + 1 hour) or preserve original duration
@@ -855,12 +864,12 @@ def move_event(user_id: str, event_query: dict, new_date: str, new_time: str = N
             event = service.events().get(calendarId='primary', eventId=event_id).execute()
 
             # Parse new date and time
-            new_start, default_new_end = parse_date_time(new_date, new_time)
+            new_start, default_new_end = parse_date_time(new_date, new_time, user_timezone)
 
             # If new_end_time was provided, parse it and combine with new_date
             if new_end_time:
                 # Take the first value (the actual end time), not the second (end time + 1 hour)
-                custom_new_end, _ = parse_date_time(new_date, new_end_time)
+                custom_new_end, _ = parse_date_time(new_date, new_end_time, user_timezone)
                 new_end = custom_new_end
             else:
                 # Use default end time (start + 1 hour) or preserve original duration
@@ -1169,7 +1178,7 @@ def list_events(user_id: str, date_query: str = None, time_query: str = None):
 
             else:
                 # List events for specific day IN USER'S TIMEZONE
-                start_dt, _ = parse_date_time(date_query)
+                start_dt, _ = parse_date_time(date_query, user_timezone=user_timezone)
                 start_dt_obj = datetime.fromisoformat(start_dt)
 
                 # Create timezone-aware datetimes for start and end of day in user's timezone
