@@ -26,10 +26,10 @@ JustScheduleIt is an AI-powered calendar assistant that lets you manage your Goo
 
 ## Tech Stack
 
-**Frontend:** React, Vite, React Router, react-big-calendar, Axios
-**Backend:** Flask (Python), Groq API (Llama 3.1 8B), Google Calendar API, PyJWT
+**Frontend:** React, Vite, JavaScript
+**Backend:** Flask (Python), Groq API (Llama 3.1), Google Calendar API
 **Database:** Supabase (PostgreSQL)
-**Auth:** Google OAuth 2.0 with encrypted refresh token storage
+**Auth:** Google OAuth 2.0
 **Deployment:** Vercel (frontend), Render (backend)
 
 ## Project Structure
