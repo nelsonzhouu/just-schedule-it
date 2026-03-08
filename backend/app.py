@@ -214,7 +214,7 @@ def format_time_conversational(time_str):
         return str(time_str)
 
 
-def generate_conversational_response(action, parsed_data, result):
+def generate_conversational_response(action, parsed_data, result, user_id=None):
     """
     Generate a friendly, conversational response based on the action and result.
 
@@ -224,6 +224,7 @@ def generate_conversational_response(action, parsed_data, result):
         action: The action type (create, delete, move, list)
         parsed_data: The parsed command data
         result: The execution result
+        user_id: User ID (needed for timezone-aware date calculations)
 
     Returns:
         str: Friendly conversational message
@@ -385,9 +386,20 @@ def generate_conversational_response(action, parsed_data, result):
 
         # Format the header based on query type
         if is_week_query:
-            # Calculate week range for display
+            # Calculate week range for display IN USER'S TIMEZONE
             from datetime import datetime, timedelta
-            now = datetime.now()
+            import pytz
+            from calendar_api import get_user_timezone
+
+            # Get user's timezone to calculate week range correctly
+            # CRITICAL: Must use user's timezone, not server UTC, to avoid showing wrong week
+            user_timezone = get_user_timezone(user_id) if user_id else None
+            if user_timezone:
+                tz = pytz.timezone(user_timezone)
+                now = datetime.now(tz)
+            else:
+                now = datetime.now()
+
             days_since_sunday = now.isoweekday() % 7
             week_start = now - timedelta(days=days_since_sunday)
 
@@ -853,7 +865,8 @@ def handle_message():
                         conversational_message = generate_conversational_response(
                             action,
                             parsed_data,
-                            execution_result
+                            execution_result,
+                            user_id
                         )
 
                         return jsonify({
@@ -1186,7 +1199,8 @@ Output: {{"action": "update_note", "title": "dentist appointment", "date": null,
         conversational_message = generate_conversational_response(
             action,
             parsed_data,
-            execution_result
+            execution_result,
+            user_id
         )
 
         # ==================== STORE PENDING ACTION ====================
