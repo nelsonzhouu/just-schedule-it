@@ -1,950 +1,165 @@
-# just-schedule-it
+# JustScheduleIt
 
 Manage your Google Calendar using natural language commands.
-Type what you want — "schedule a meeting tomorrow at 3pm" or "cancel my dentist appointment" — and it handles the rest.
+
+## Live Demo
+
+**[https://just-schedule-it.vercel.app](https://just-schedule-it.vercel.app)**
+
+## About
+
+JustScheduleIt is an AI-powered calendar assistant that lets you manage your Google Calendar naturally. Instead of clicking through forms, just type what you want: "schedule a meeting tomorrow at 3pm" or "move my dentist appointment to next Tuesday at 2pm". The app uses AI to parse your commands and executes them on your real Google Calendar in real-time.
+
+## Features
+
+- **Natural language processing** - Type commands like you speak
+- **Create events** - Schedule meetings with custom durations, notes, and reminders
+- **Delete events** - Cancel events via command or click the trash icon in the popup
+- **Move events** - Reschedule to new dates and times
+- **Add notes** - Attach descriptions to events with flexible syntax
+- **Set reminders** - Custom notification times or disable reminders entirely
+- **List events** - Query single days, weeks, or entire months
+- **Smart matching** - Fuzzy search finds "Team Meeting" when you type "meeting"
+- **Multiple match confirmation** - Numbered selection when events are ambiguous
+- **Interactive calendar** - Week/month/day views with click-to-view event details
+- **Timezone-aware** - All operations use your Google Calendar timezone
+- **Real-time updates** - Calendar refreshes automatically after each action
+- **Secure authentication** - Google OAuth with httpOnly JWT cookies
 
 ## Tech Stack
-- **Frontend:** React + Vite, hosted on Vercel
-- **Backend:** Flask (Python), hosted on Render
-- **AI:** Groq API (Llama 3.1 8B Instant)
-- **Database:** Supabase (PostgreSQL)
-- **Auth:** Google OAuth 2.0 + JWTs
-- **Calendar:** Google Calendar API with react-big-calendar
 
-## Status
-Currently in **Phase 3C Complete**: Full Google Calendar integration with natural language command execution, real-time calendar view, and conversational AI responses.
-
-## What It Does
-
-**JustScheduleIt** is an AI-powered calendar assistant that lets you manage your Google Calendar using natural language. Instead of clicking through forms, just type what you want:
-
-- **Create events:** "schedule a 30 minute standup at 9am tomorrow"
-- **Add notes:** "schedule a meeting tomorrow at 3pm, note: bring laptop" or "with note: bring laptop"
-- **Set reminders:** "remind me 1 hour before my dentist appointment tomorrow"
-- **Delete events:** "cancel my meeting on Friday at 3pm" or click the trash icon in the event popup
-- **Reschedule events:** "move my dentist appointment to next Tuesday at 2pm"
-- **Update notes:** "add a note to my meeting tomorrow: call John first"
-- **Clear notes:** "delete the note on my meeting tomorrow"
-- **List events:** "what do I have on Monday?" or "show my calendar this week" or "what's on next month?"
-
-The app uses Groq's Llama 3.1 model to parse your commands, then executes them on your real Google Calendar. View your calendar in a beautiful week view and see changes happen in real-time.
-
----
-
-## Current Features
-
-### ✅ Fully Working
-
-**Natural Language Calendar Management:**
-- Parse complex calendar commands using Groq AI (Llama 3.1 8B Instant)
-- Support for 5 actions: **create**, **delete**, **move**, **update_note**, **list**
-- Intelligent date/time parsing (relative dates like "tomorrow", "next Friday")
-- Duration parsing ("30 minute meeting", "2 hour call", "from 1pm to 3pm")
-- **Event notes/descriptions** with flexible syntax:
-  - "note: bring laptop", "note bring laptop" (no colon)
-  - "with note: bring laptop", "add note: bring laptop", "notes: bring laptop"
-- **Clear notes** ("delete the note on my meeting tomorrow")
-- **Custom reminders** ("remind me 1 hour before my dentist appointment")
-- **No reminder option** ("schedule a meeting Friday without a reminder")
-- Default 30-minute reminder for all events unless explicitly disabled
-- Fuzzy title matching ("meeting" finds "Team Meeting")
-- Time-specific matching ("delete meeting at 3pm" won't delete the 2pm meeting)
-- Multiple match confirmation flow with numbered selection
-- Conversational responses with reminder confirmation ("You'll be reminded 30 minutes before")
-
-**Google Calendar Integration:**
-- Full Google Calendar API integration
-- Create events with custom titles, dates, times, durations, notes, and reminders
-- Add or update notes/descriptions on existing events
-- Set custom reminder times (minutes or hours before event)
-- Explicitly disable reminders when requested
-- Delete events with confirmation when multiple matches found
-- Move/reschedule events to new dates and times
-- List events for specific dates, weeks, or months:
-  - Single day: "what do I have tomorrow?"
-  - Week ranges: "show my calendar this week" or "what's next week?"
-  - Month ranges: "what's on my calendar this month?" or "list events for next month"
-- Smart response formatting:
-  - Single day queries show simple event list
-  - Week/month queries group events by date with day names
-  - Week ranges show calculated date span (e.g., "March 1-7, 2026")
-- Timezone-aware operations (uses user's Google Calendar timezone)
-- Real-time calendar updates after each action
-- Automatic title capitalization
-
-**Calendar View:**
-- Interactive calendar using react-big-calendar
-- Week view by default (configurable to month/day/agenda)
-- Click events to see details in a popup (title, date, time range, notes, reminders)
-- Event popup displays notes and reminder times when present
-- **Delete events directly** from popup using trash bin icon with confirmation dialog
-- Custom toolbar with Today/Back/Next navigation
-- Scrolls to 8:00 AM by default for workday view
-- Responsive design for mobile and desktop
-- Events display with proper timezone handling
-
-**Authentication & Security:**
-- Google OAuth 2.0 login flow with Calendar API scope
-- JWT sessions with httpOnly cookies (XSS-safe)
-- Secure cookie flag automatically enabled in production (FLASK_ENV-based)
-- Environment-based OAuth redirects (no hardcoded URLs)
-- Refresh tokens encrypted with Fernet before storage
-- Protected API endpoints and routes with rate limiting
-- User profile management
-- Automatic user creation on first login
-- Secure logout functionality
-
-**Frontend UI:**
-- Modern SaaS-style landing page with elegant branding
-- Protected dashboard with two-column layout (calendar + chat)
-- User profile display with fallback initials
-- Chat interface with conversational AI responses
-- Session-based chat history (clears on refresh)
-- Pending action storage for multi-step confirmations
-- Fully responsive design for all devices
-
-**Database:**
-- User profiles stored in Supabase
-- Encrypted refresh token storage
-- Automatic user creation on first login
-- Timezone caching to reduce API calls
-
-**API Endpoints:**
-- `GET /api/health` - Health check
-- `GET /api/auth/login` - Initiate OAuth flow
-- `GET /api/auth/callback` - OAuth callback handler
-- `GET /api/auth/user` - Get current user (protected)
-- `POST /api/auth/logout` - Logout user (protected)
-- `POST /api/message` - Parse and execute calendar commands (protected)
-- `GET /api/calendar/events` - Fetch calendar events for date range (protected)
-- `DELETE /api/calendar/events/<event_id>` - Delete specific event by ID (protected)
-
----
+**Frontend:** React, Vite, React Router, react-big-calendar, Axios
+**Backend:** Flask (Python), Groq API (Llama 3.1 8B), Google Calendar API, PyJWT
+**Database:** Supabase (PostgreSQL)
+**Auth:** Google OAuth 2.0 with encrypted refresh token storage
+**Deployment:** Vercel (frontend), Render (backend)
 
 ## Project Structure
 
 ```
 just-schedule-it/
-├── backend/                      # Flask API server
-│   ├── app.py                    # Main Flask application with all endpoints
-│   ├── calendar_api.py           # Google Calendar API integration
-│   ├── auth.py                   # Google OAuth & JWT logic
-│   ├── database.py               # Supabase client & database operations
-│   ├── config.py                 # Configuration management (.env loader)
-│   ├── requirements.txt          # Python dependencies
-│   ├── .env.example              # Environment variables template
-│   └── migrations/
-│       └── 001_create_tables.sql # Database schema (users, refresh_tokens)
+├── backend/
+│   ├── app.py                    # Main Flask app with endpoints
+│   ├── calendar_api.py           # Google Calendar integration
+│   ├── auth.py                   # OAuth & JWT logic
+│   ├── database.py               # Supabase client
+│   ├── config.py                 # Environment config
+│   ├── requirements.txt
+│   ├── Procfile                  # Render deployment
+│   ├── .env.example
+│   ├── migrations/
+│   │   └── 001_create_tables.sql
+│   └── tests/
+│       ├── conftest.py
+│       ├── test_app.py
+│       ├── test_auth.py
+│       └── test_calendar_api.py
 │
-├── frontend/                     # React + Vite frontend
+├── frontend/
 │   ├── src/
-│   │   ├── utils/
-│   │   │   ├── api.js            # Axios instance with cookie support
-│   │   │   └── auth.js           # Authentication helper functions
 │   │   ├── pages/
-│   │   │   ├── HomePage.jsx      # Landing page with login
-│   │   │   ├── HomePage.css
-│   │   │   ├── Dashboard.jsx     # Main app page (protected)
-│   │   │   └── Dashboard.css
+│   │   │   ├── HomePage.jsx
+│   │   │   └── Dashboard.jsx
 │   │   ├── components/
-│   │   │   ├── MessageInput.jsx  # Command input component
-│   │   │   ├── MessageInput.css
-│   │   │   ├── ChatMessage.jsx   # Chat message display (conversational)
-│   │   │   ├── ChatMessage.css
-│   │   │   ├── Calendar.jsx      # Google Calendar view (react-big-calendar)
-│   │   │   ├── Calendar.css
-│   │   │   ├── CustomToolbar.jsx # Custom calendar navigation toolbar
-│   │   │   └── CustomToolbar.css
-│   │   ├── App.jsx               # Routing and protected routes
-│   │   ├── App.css               # Global styles
-│   │   └── main.jsx              # React entry point with BrowserRouter
-│   ├── index.html                # HTML template with Google Fonts
-│   ├── vite.config.js            # Vite configuration (includes proxy)
-│   ├── package.json              # Node.js dependencies
-│   └── .env.example              # Environment variables template
+│   │   │   ├── Calendar.jsx
+│   │   │   ├── MessageInput.jsx
+│   │   │   ├── ChatMessage.jsx
+│   │   │   └── CustomToolbar.jsx
+│   │   ├── utils/
+│   │   │   ├── api.js
+│   │   │   └── auth.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── vite.config.js
+│   ├── vercel.json              # Vercel deployment config
+│   ├── package.json
+│   └── .env.example
 │
 └── README.md
 ```
 
----
-
-## Setup Instructions
+## Local Setup
 
 ### Prerequisites
-
-Before starting, you'll need to set up:
 
 1. **Groq API Key** - Get from [console.groq.com](https://console.groq.com/)
 2. **Supabase Project** - Create at [supabase.com](https://supabase.com/)
 3. **Google OAuth Credentials** - Set up at [console.cloud.google.com](https://console.cloud.google.com/)
-
----
+   - Enable Google Calendar API and People API
+   - Create OAuth 2.0 credentials with redirect URI: `http://localhost:5000/api/auth/callback`
+   - Add scopes: calendar, userinfo.email, userinfo.profile
 
 ### Backend Setup
-
-#### 1. Install Python Dependencies
 
 ```bash
 cd backend
 python -m venv venv
-
-# Activate virtual environment
-source venv/bin/activate  # macOS/Linux
-# OR
-venv\Scripts\activate     # Windows
-
+source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-#### 2. Configure Environment Variables
-
-```bash
+# Configure environment
 cp .env.example .env
-```
+# Edit .env and fill in all values (see .env.example for details)
 
-Edit `backend/.env` and fill in all values:
+# Set up database
+# Go to Supabase → SQL Editor → Run migrations/001_create_tables.sql
 
-```bash
-# Flask Configuration
-FLASK_ENV=development
-PORT=5000
-FRONTEND_URL=http://localhost:5173
-CORS_ORIGINS=http://localhost:5173
-
-# Groq API - https://console.groq.com/
-GROQ_API_KEY=gsk_your_groq_api_key_here
-
-# Supabase - Project Settings → API
-SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_KEY=your_service_role_key_here
-
-# Google OAuth - Google Cloud Console → Credentials
-GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
-GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/callback
-
-# JWT Configuration
-# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
-JWT_SECRET=your_generated_jwt_secret
-JWT_EXPIRATION=3600
-
-# Encryption for Refresh Tokens
-# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-ENCRYPTION_KEY=your_generated_fernet_key
-```
-
-#### 3. Set Up Supabase Database
-
-1. Go to your Supabase project dashboard
-2. Click **SQL Editor** in the sidebar
-3. Create a new query
-4. Copy and paste the entire contents of `backend/migrations/001_create_tables.sql`
-5. Click **Run** (or press Cmd/Ctrl + Enter)
-6. Verify: You should see "Tables created successfully!"
-
-This creates:
-- `users` table - Stores Google user profiles
-- `refresh_tokens` table - Stores encrypted OAuth tokens
-
-#### 4. Configure Google OAuth
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable these APIs:
-   - **Google Calendar API**
-   - **Google+ API** (or People API)
-4. Go to "OAuth consent screen":
-   - Choose **External** (or Internal if using Google Workspace)
-   - Fill in app name: "JustScheduleIt"
-   - Add scopes:
-     - `https://www.googleapis.com/auth/calendar` (View and edit your calendar)
-     - `https://www.googleapis.com/auth/userinfo.email`
-     - `https://www.googleapis.com/auth/userinfo.profile`
-   - Add your email as a test user (required for External apps in development)
-5. Go to "Credentials" → "Create Credentials" → "OAuth client ID":
-   - Application type: **Web application**
-   - Authorized JavaScript origins: `http://localhost:5173`
-   - Authorized redirect URIs: `http://localhost:5000/api/auth/callback`
-6. Copy the Client ID and Client Secret to your `.env` file
-
-#### 5. Run the Backend
-
-```bash
-# Make sure virtual environment is activated
+# Start backend
 python app.py
 ```
 
-Server starts on `http://localhost:5000`
-
----
-
 ### Frontend Setup
-
-#### 1. Install Dependencies
-
-In a new terminal:
 
 ```bash
 cd frontend
 npm install
-```
-
-#### 2. Configure Environment Variables (Optional)
-
-The frontend uses Vite's proxy for API requests, so no environment variables are required for local development. The proxy is already configured in `vite.config.js`.
-
-For production deployment, create `frontend/.env`:
-
-```bash
-VITE_API_URL=https://your-backend-url.onrender.com
-```
-
-#### 3. Run the Frontend
-
-```bash
 npm run dev
 ```
 
-Server starts on `http://localhost:5173`
+Visit `http://localhost:5173` and log in with Google.
 
----
-
-## Running the Application Locally
-
-### Starting Both Servers
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-python app.py
-```
-
-You should see:
-```
- * Running on http://127.0.0.1:5000
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-```
-
-You should see:
-```
-  VITE v5.x.x  ready in xxx ms
-
-  ➜  Local:   http://localhost:5173/
-```
-
-Then visit `http://localhost:5173` in your browser.
-
----
-
-## Testing the Application
-
-### 1. Test the Landing Page
-
-1. Visit `http://localhost:5173`
-2. You should see:
-   - Modern SaaS landing page with "JustScheduleIt" logo
-   - Elegant serif headline: "Manage your calendar with natural language"
-   - "Get Started" button in the hero section
-   - "Login with Google" button in header
-   - Three feature cards showcasing functionality
-3. Click either login button to start OAuth flow
-
-### 2. Test OAuth Login Flow
-
-1. Click "Login with Google" or "Get Started"
-2. Sign in with your Google account
-3. Grant calendar permissions when prompted
-4. You'll be redirected to `http://localhost:5173/dashboard`
-5. Check browser cookies (DevTools → Application → Cookies):
-   - Should see `jwt_token` cookie set (httpOnly, secure in production)
-
-### 3. Test Dashboard
-
-After logging in, you should see:
-- Header with "JustScheduleIt" logo
-- Your profile picture (or initial fallback) and name
-- Logout button
-- Two-column layout:
-  - **Left**: Interactive Google Calendar (week view)
-  - **Right**: Chat interface with conversational AI
-
-### 4. Test Calendar View
-
-In the calendar section:
-1. Calendar should load showing your current week
-2. Any existing Google Calendar events should appear
-3. Click **Today** to jump to current date
-4. Click **◄** / **►** to navigate weeks
-5. Click view buttons to switch between Week/Month/Day/Agenda views
-6. Click any event to see a popup with:
-   - Event title
-   - Formatted date (e.g., "March 4th, 2026")
-   - Time range (e.g., "3:00 PM - 4:00 PM")
-   - Notes/description (if present)
-   - Reminder time (if present, e.g., "30 minutes before")
-   - Close button (or click outside/press Escape to close)
-
-### 5. Test Natural Language Commands
-
-Try these commands in the chat interface:
-
-**Create Events:**
-```
-schedule a meeting with John tomorrow at 3pm
-book a 30 minute standup at 9am on Friday
-schedule a 2 hour workshop from 1pm to 3pm next Monday
-```
-
-**Create Events with Notes:**
-```
-schedule a meeting tomorrow at 3pm, note: bring laptop
-schedule a meeting tomorrow at 2pm note bring presentation slides
-book a call with Sarah Friday at 2pm with note: discuss Q1 roadmap
-schedule a team sync Monday at 10am add note: prepare quarterly review
-create a planning session Tuesday at 3pm, notes: review budget and timeline
-```
-
-**Create Events with Custom Reminders:**
-```
-remind me 1 hour before my dentist appointment tomorrow at 2pm
-schedule a meeting Friday at 4pm, remind me 15 minutes before
-```
-
-**Create Events without Reminders:**
-```
-schedule a meeting Friday at 4pm without a reminder
-book lunch tomorrow at noon, no reminder
-```
-
-**Add or Clear Notes on Existing Events:**
-```
-add a note to my meeting tomorrow: call John first
-update my dentist appointment Friday with note: bring insurance card
-delete the note on my meeting tomorrow
-remove the note from my dentist appointment
-clear the note on my team sync
-```
-
-**Delete Events:**
-```
-cancel my meeting tomorrow
-delete dentist appointment on Friday at 3pm
-```
-
-**Or click directly on any event in the calendar view and use the trash bin icon in the popup!**
-
-**Move/Reschedule Events:**
-```
-move my 3pm meeting to tomorrow at 2pm
-reschedule my dentist appointment to next Tuesday at 10am
-```
-
-**List Events:**
-```
-# Single day queries
-what do I have tomorrow?
-show my events on Friday
-what's on my calendar today?
-
-# Week queries (groups by date)
-what do I have this week?
-show my schedule for next week
-what's on my calendar this week?
-
-# Month queries (groups by date)
-what's on my calendar this month?
-list events for next month
-show me my schedule for this month
-```
-
-**Expected Behavior:**
-- Your message appears in a dark bubble (right-aligned)
-- AI response appears in a light bubble (left-aligned)
-- Responses are conversational: "✓ Done! 'Meeting' scheduled for March 5th, 2026 at 3:00 PM"
-- Calendar updates in real-time after each command
-- Events appear with proper timezone handling
-
-### 6. Test Multiple Match Confirmation
-
-1. Create two events with similar names:
-   - "schedule a team meeting tomorrow at 2pm"
-   - "schedule a team meeting tomorrow at 4pm"
-2. Try to delete without being specific:
-   - "delete team meeting tomorrow"
-3. You should see a numbered list:
-   ```
-   I found multiple matches - which one did you mean?
-
-   1. Team Meeting (2:00 PM - 3:00 PM)
-   2. Team Meeting (4:00 PM - 5:00 PM)
-
-   Type 1, 2, 3... to select, or type a new command to cancel.
-   ```
-4. Type "1" to select the first event
-5. Event should be deleted and calendar updates
-
-### 7. Test Fuzzy Matching
-
-The app uses fuzzy/partial word matching for finding events:
-- "standup" finds "Daily Standup"
-- "meeting" finds "Team Meeting"
-- "dentist" finds "Dentist Appointment"
-
-### 8. Test Protected Routes
-
-1. Open a new incognito/private browser window
-2. Try to visit `http://localhost:5173/dashboard` directly
-3. You should be redirected to `/` (homepage) since you're not logged in
-4. This confirms protected routes are working correctly
-
-### 9. Verify Database
-
-In Supabase → Table Editor:
-- **users** table: Should have your Google profile (name, email, picture)
-- **refresh_tokens** table: Should have encrypted token (looks like gibberish - that's good!)
-
-### 10. Test Logout
-
-1. Click the "Logout" button in the dashboard header
-2. You should be redirected to the homepage
-3. JWT cookie is cleared
-4. Trying to access `/dashboard` should redirect to `/`
-
----
-
-## Automated Testing
-
-### Running Backend Tests
-
-The backend includes comprehensive automated tests using pytest to ensure critical functions work correctly.
-
-#### Install Test Dependencies
-
-Test dependencies are included in `requirements.txt`. If you've already installed dependencies, you have them. Otherwise:
+## Running Tests
 
 ```bash
 cd backend
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
+pytest                           # Run all tests
+pytest -v                        # Verbose output
+pytest --cov=. --cov-report=html # Coverage report
 ```
 
-This installs:
-- `pytest` - Test framework
-- `pytest-mock` - Mocking support
-- `pytest-cov` - Coverage reporting
-- `freezegun` - Time freezing for deterministic date tests
-
-#### Run All Tests
-
-```bash
-cd backend
-pytest
-```
-
-You should see output like:
-```
-======================== test session starts ========================
-collected 65 items
-
-tests/test_auth.py .............                              [ 20%]
-tests/test_app.py .........                                    [ 33%]
-tests/test_calendar_api.py ..........................................  [100%]
-
-======================== 65 passed in 0.74s =========================
-```
-
-#### Run Tests with Verbose Output
-
-```bash
-pytest -v
-```
-
-Shows each individual test name as it runs.
-
-#### Run Tests with Coverage Report
-
-```bash
-pytest --cov=. --cov-report=term --cov-report=html
-```
-
-This generates:
-- **Terminal report** - Shows coverage percentage for each file
-- **HTML report** - Creates `htmlcov/` directory with detailed coverage report
-  - Open `htmlcov/index.html` in your browser to see line-by-line coverage
-
-Example coverage output:
-```
------------ coverage: platform darwin, python 3.x.x -----------
-Name                    Stmts   Miss  Cover
--------------------------------------------
-auth.py                   142     45    68%
-calendar_api.py           287    156    46%
-config.py                  23      0   100%
--------------------------------------------
-TOTAL                     452    201    56%
-```
-
-#### Run Specific Tests
-
-```bash
-# Run tests from a specific file
-pytest tests/test_auth.py
-
-# Run tests from a specific class
-pytest tests/test_calendar_api.py::TestParseDatetime
-
-# Run a specific test
-pytest tests/test_calendar_api.py::TestParseDatetime::test_parse_tomorrow -v
-```
-
-#### Run Tests and Stop on First Failure
-
-```bash
-pytest -x
-```
-
-Useful for debugging - stops immediately when a test fails.
-
-### What's Being Tested
-
-**`tests/test_calendar_api.py` (45 tests):**
-
-1. **`parse_date_time()`** - Date and time parsing
-   - Relative dates: "today", "tomorrow", "friday", "monday"
-   - Absolute dates: "2026-03-15"
-   - Times: "3pm", "9am", "14:30", "12pm", "12am"
-   - Default behavior: missing time defaults to 12pm
-
-2. **`format_date_conversational()`** - Friendly date formatting
-   - Ordinal suffixes: 1st, 2nd, 3rd, 4th, 11th, 21st, 31st
-   - Month names and year formatting
-   - Edge cases: 11th-13th (should be "th" not "st/nd/rd")
-
-3. **`format_time_conversational()`** - Friendly time formatting
-   - AM/PM conversion: "9:00 AM", "3:00 PM"
-   - Edge cases: midnight (12:00 AM), noon (12:00 PM)
-
-4. **`format_time_range()`** - Time range formatting
-   - Normal ranges: "9:00 AM - 10:00 AM"
-   - All-day events: returns "All day"
-
-5. **Fuzzy Matching Logic** - Search flexibility
-   - "standup" finds "Daily Standup"
-   - "meeting" finds "Team Meeting"
-   - "dentist" finds "Dentist Appointment"
-   - Case-insensitive matching
-   - No match returns empty list
-
-6. **Event Notes and Reminders** - create_event() functionality
-   - Creating events with notes/descriptions
-   - Default 30-minute reminders
-   - Custom reminder times (e.g., 60 minutes)
-   - Reminder behavior with `reminder_minutes: None` (uses default)
-   - Explicitly disabling reminders with `no_reminder: True`
-
-**`tests/test_app.py` (8 tests):**
-
-1. **Groq AI Parsing** - Natural language command parsing
-   - Parsing notes from commands ("note: bring laptop")
-   - Parsing custom reminders ("remind me 1 hour before")
-   - Handling "no reminder" requests
-   - update_note action handling
-
-2. **Conversational Responses** - User-friendly message generation
-   - Responses mention reminder times when set
-   - Responses don't mention reminders when disabled
-   - Friendly confirmation messages
-
-**`tests/test_auth.py` (13 tests):**
-
-1. **`create_jwt()`** - JWT token creation
-   - Creates valid JWT tokens
-   - Payload contains user_id and expiration
-   - Expiration set to correct duration
-   - Different users get different tokens
-
-2. **`verify_jwt()`** - JWT token verification
-   - Valid tokens return user_id
-   - Returns None for:
-     - Expired tokens
-     - Invalid signatures
-     - Malformed tokens
-     - Empty/None tokens
-     - Tokens missing user_id
-
-### Test Features
-
-✅ **Mocked External Services** - No real API calls (Google Calendar, Groq)
-✅ **Frozen Time** - Deterministic date tests using freezegun at "2026-02-28 10:00:00"
-✅ **Shared Fixtures** - Reusable test data in `conftest.py`
-✅ **Fast Execution** - All 65 tests run in ~1-2 seconds
-✅ **Comprehensive Coverage** - Tests critical helper functions and edge cases
-
-### Writing New Tests
-
-Tests are located in `backend/tests/`. To add new tests:
-
-1. Add test functions to existing test files, or create a new file: `test_*.py`
-2. Use `@freeze_time("2026-02-28 10:00:00")` decorator for date-dependent tests
-3. Mock external services using `unittest.mock` or `pytest-mock`
-4. Follow naming convention: `test_*` for functions, `Test*` for classes
-5. Run `pytest` to verify new tests pass
-
----
-
-## Technology Stack
-
-### Frontend
-- **React 18** - UI framework
-- **Vite** - Build tool and dev server
-- **React Router v6** - Client-side routing and protected routes
-- **Axios** - HTTP client with cookie support
-- **react-big-calendar** - Interactive calendar component
-- **date-fns** - Lightweight date formatting library
-- **Google Fonts** - Playfair Display for elegant branding
-- **CSS3** - Custom styling with responsive design
-
-### Backend
-- **Flask 3.0** - Python web framework
-- **Flask-CORS** - Cross-origin resource sharing
-- **Flask-Limiter** - Rate limiting middleware for API protection
-- **Groq API** - Llama 3.1 8B Instant for natural language parsing
-- **Google OAuth 2.0** - Authentication with Calendar API scope
-- **Google Calendar API** - Calendar operations (create/delete/move/list)
-- **PyJWT** - JWT session token generation
-- **Cryptography (Fernet)** - Symmetric encryption for refresh tokens
-- **python-dotenv** - Environment variable management
-- **python-dateutil** - Advanced date parsing
-- **pytz** - Timezone handling
-
-### Testing
-- **pytest** - Test framework
-- **pytest-mock** - Mocking support for tests
-- **pytest-cov** - Code coverage reporting
-- **freezegun** - Time freezing for deterministic date tests
-
-### Database
-- **Supabase** - PostgreSQL database as a service
-- Row Level Security (RLS) enabled
-- Service role key for server-side operations
-
-### AI & APIs
-- **Groq** - Fast LLM inference (Llama 3.1 8B Instant)
-- **Google Calendar API** - Calendar data access and manipulation
-- **Google OAuth 2.0** - User authentication and authorization
-
-### Deployment (Phase 4)
-- **Frontend:** Vercel (planned)
-- **Backend:** Render (planned)
-
----
-
-## Security Features
-
-- ✅ **No secrets in code** - All credentials in `.env` files (never committed)
-- ✅ **httpOnly cookies** - JWTs protected from XSS attacks
-- ✅ **Secure cookies in production** - Cookie secure flag automatically enabled based on FLASK_ENV
-- ✅ **Environment-based redirects** - OAuth redirects use FRONTEND_URL environment variable (no hardcoded URLs)
-- ✅ **Encrypted tokens** - Refresh tokens encrypted with Fernet before database storage
-- ✅ **CORS configured** - Cross-origin requests restricted to allowed origins
-- ✅ **Input validation** - All endpoints validate and sanitize input:
-  - Message commands limited to 500 characters
-  - ISO datetime format validation for calendar queries
-- ✅ **Rate limiting** - Flask-Limiter protects against abuse:
-  - `/api/auth/login`: 10 requests/minute per IP
-  - `/api/message`: 30 requests/minute per user
-  - `/api/calendar/events`: 60 requests/minute per user
-- ✅ **No sensitive data logging** - Removed debug statements that could log user data
-- ✅ **Parameterized queries** - Supabase SDK prevents SQL injection
-- ✅ **Service role key** - Backend uses admin key, never exposed to frontend
-- ✅ **Protected routes** - Authentication required for dashboard and API access
-- ✅ **Timezone-aware operations** - All calendar operations use user's local timezone
-- ✅ **Session management** - Flask sessions for multi-step confirmations
-- ✅ **OAuth credentials secured** - credentials.json and token.pickle in .gitignore
-
----
-
-## Privacy
-
-**JustScheduleIt** respects your privacy and handles your Google Calendar data with care. The app accesses your Google Calendar data only to perform the actions you explicitly request through natural language commands. No calendar event data is stored in our database or logged to any external services. Only encrypted refresh tokens are stored in the database to maintain your authenticated session. You can revoke the app's access to your Google Calendar at any time by visiting your [Google Account Permissions](https://myaccount.google.com/permissions) page.
-
----
-
-## Development Phases
-
-### Phase 1 ✅ Complete
-- [x] Flask backend with simple echo endpoint
-- [x] React frontend with text input
-- [x] Backend ↔ Frontend communication working
-
-### Phase 2 ✅ Complete
-- [x] Integrate Groq API (Llama 3.1 8B Instant)
-- [x] Parse natural language commands into structured JSON
-- [x] Support 4 actions: create, delete, move, list
-- [x] Return consistent JSON with date/time parsing
-
-### Phase 3A ✅ Complete
-- [x] Set up Supabase database (users, refresh_tokens tables)
-- [x] Implement Google OAuth 2.0 flow
-- [x] Add JWT session management with httpOnly cookies
-- [x] Encrypt refresh tokens with Fernet
-- [x] Protected API endpoints
-- [x] User authentication and profile storage
-
-### Phase 3B ✅ Complete
-- [x] Add React Router for page navigation
-- [x] Create modern SaaS landing page
-- [x] Create Dashboard page with user profile
-- [x] Implement protected routes
-- [x] Configure axios for cookie-based auth
-- [x] Build chat interface with message history
-- [x] Responsive design for mobile/tablet
-
-### Phase 3C ✅ Complete
-- [x] Integrate Google Calendar API
-- [x] Implement calendar operations:
-  - [x] Create events with custom duration support
-  - [x] Add event notes/descriptions with flexible syntax (note:, with note:, add note:, notes:)
-  - [x] Clear notes from existing events
-  - [x] Set custom reminders (minutes or hours before event)
-  - [x] Disable reminders when explicitly requested
-  - [x] Default 30-minute reminder for all events
-  - [x] Update notes on existing events (update_note action)
-  - [x] Delete events with fuzzy matching and confirmation
-  - [x] Move/reschedule events with duration preservation
-  - [x] List events with timezone awareness
-  - [x] Week range queries (this week, next week)
-  - [x] Month range queries (this month, next month)
-  - [x] Smart response formatting with date grouping for multi-day queries
-- [x] Display real calendar in dashboard (react-big-calendar)
-- [x] Execute parsed commands on actual Google Calendar
-- [x] Add conversational AI responses
-- [x] Implement timezone-aware date range searches
-- [x] Add multiple match confirmation flow with session storage
-- [x] Create custom calendar toolbar
-- [x] Add event detail popup on click
-- [x] Display notes and reminders in event popup
-- [x] Add delete button to event popup with confirmation dialog
-- [x] Implement fuzzy title matching
-- [x] Add time-specific event filtering
-- [x] Add automated backend testing with pytest (65 tests)
-- [x] Add security improvements:
-  - [x] Rate limiting (Flask-Limiter)
-  - [x] Input validation (message length, ISO datetime format)
-  - [x] Environment-based cookie security (secure flag conditional on FLASK_ENV)
-  - [x] Configurable OAuth redirects (FRONTEND_URL environment variable)
-  - [x] Removed sensitive data logging (debug print statements)
-
-### Phase 4 (Next)
-- [ ] Deploy backend to Render
-- [ ] Deploy frontend to Vercel
-- [ ] Configure production environment variables:
-  - [ ] Set `FLASK_ENV=production` (enables secure cookies)
-  - [ ] Set `FRONTEND_URL=https://yourapp.vercel.app`
-  - [ ] Set `CORS_ORIGINS=https://yourapp.vercel.app`
-  - [ ] Update `GOOGLE_REDIRECT_URI=https://yourbackend.onrender.com/api/auth/callback`
-  - [ ] Generate new production `JWT_SECRET` and `ENCRYPTION_KEY`
-- [ ] Update Google OAuth redirect URIs for production in Google Cloud Console
-- [ ] Test end-to-end in production environment
-- [ ] Configure custom domain (optional)
-
----
-
-## Production Deployment Notes
-
-### Critical Environment Variables for Production
-
-When deploying to production, ensure these environment variables are properly configured:
-
-**Backend (Render):**
-```bash
-FLASK_ENV=production          # Enables secure cookies, disables debug mode
-FRONTEND_URL=https://yourapp.vercel.app  # Your frontend domain
-CORS_ORIGINS=https://yourapp.vercel.app  # Allowed CORS origins
-GOOGLE_REDIRECT_URI=https://yourbackend.onrender.com/api/auth/callback
-```
-
-**Security Notes:**
-- Setting `FLASK_ENV=production` automatically enables:
-  - Secure cookie flag (requires HTTPS)
-  - Disables debug mode and detailed error pages
-- `FRONTEND_URL` controls OAuth redirects (no hardcoded localhost URLs)
-- Generate new secrets for production (don't reuse development keys)
-
----
-
-## Design Philosophy
-
-**Security First:**
-- All sensitive tokens stored server-side and encrypted
-- httpOnly cookies prevent XSS attacks
-- Protected routes ensure authenticated access only
-- No secrets exposed to frontend
-- Timezone-aware operations prevent data leaks
-
-**User Experience:**
-- Natural language interface - type like you talk
-- Conversational AI responses - friendly, not robotic
-- Real-time calendar updates
-- Quick event deletion - click event popup trash icon with confirmation
-- Fuzzy matching - "meeting" finds "Team Meeting"
-- Multiple match confirmation - never delete the wrong event
-- Modern SaaS aesthetic with warm, inviting colors
-- Responsive layout for all devices
-
-**Developer Experience:**
-- Comprehensive code comments throughout
-- Modular component architecture
-- Clear separation of concerns (calendar_api.py, auth.py, database.py)
-- Environment-based configuration
-- Consistent error handling
-- Type hints in Python functions
-
----
-
-## Troubleshooting
-
-### Calendar not showing events
-1. Check that you granted Calendar permissions during OAuth
-2. Verify Google Calendar API is enabled in Google Cloud Console
-3. Check browser console for errors
-4. Verify JWT token exists in cookies (DevTools → Application → Cookies)
-
-### "Failed to parse AI response" error
-1. Check that GROQ_API_KEY is set correctly in backend/.env
-2. Verify Groq API key is valid at [console.groq.com](https://console.groq.com/)
-3. Check backend terminal for detailed error messages
-
-### OAuth redirect not working
-1. Verify GOOGLE_REDIRECT_URI matches exactly in:
-   - backend/.env file
-   - Google Cloud Console → Credentials → Authorized redirect URIs
-2. Make sure it's `http://localhost:5000/api/auth/callback` for local development
-
-### "No events found" when you know events exist
-1. Check timezone - events might be on a different day in your timezone
-2. Verify you're searching the correct date
-3. Check Google Calendar web interface to confirm events exist
-
-### Multiple match confirmation not working
-1. Make sure Flask secret key is set (uses JWT_SECRET)
-2. Check browser allows cookies
-3. Verify session is not being cleared between requests
-
----
+Tests cover date parsing, JWT authentication, fuzzy matching, event notes, reminders, and conversational responses.
 
 ## Contributing
 
-This is a personal project. Feel free to fork and adapt for your own use!
+Contributions are welcome! Here's how to get started:
 
----
+1. **Fork** the repository
+2. **Create a branch** for your feature (`git checkout -b feature/amazing-feature`)
+3. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+4. **Push to your branch** (`git push origin feature/amazing-feature`)
+5. **Open a Pull Request**
+
+### Feature Ideas
+
+Looking for something to work on? Here are some ideas:
+
+- **Recurring events** - "schedule a standup every Monday at 9am"
+- **Event guests** - "invite john@email.com to my meeting tomorrow"
+- **Event locations** - "add location: Starbucks on Main St"
+- **Google Meet integration** - "create a meeting with a video call link"
+- **Improved AI prompting** - Better edge case handling, more examples, error recovery
+- **Expand test coverage** - Add frontend tests, integration tests, E2E tests
+- **Multi-language support** - Spanish, French, German, etc.
+- **Natural language search** - "find all my dentist appointments"
+- **Edit events from popup** - Change title, time, notes directly in UI
+- **Dark mode** - Theme toggle for night owls
+- **Voice input** - Speak your commands instead of typing
+- **Mobile app** - React Native version
+
+## Privacy
+
+JustScheduleIt accesses your Google Calendar data only to perform actions you explicitly request through natural language commands. No calendar event data is stored in our database or logged to external services. Only encrypted refresh tokens are stored to maintain your authenticated session. You can revoke access anytime at [Google Account Permissions](https://myaccount.google.com/permissions).
 
 ## License
 
-See LICENSE file for details.
+MIT License - See LICENSE file for details.
