@@ -19,8 +19,6 @@ JustScheduleIt is an AI-powered calendar assistant that lets you manage your Goo
 - **Add notes** - Attach descriptions to events with flexible syntax
 - **Set reminders** - Custom notification times or disable reminders entirely
 - **List events** - Query single days, weeks, or entire months
-- **Smart matching** - Fuzzy search finds "Team Meeting" when you type "meeting"
-- **Multiple match confirmation** - Numbered selection when events are ambiguous
 - **Interactive calendar** - Week/month/day views with click-to-view event details
 - **Timezone-aware** - All operations use your Google Calendar timezone
 - **Real-time updates** - Calendar refreshes automatically after each action
